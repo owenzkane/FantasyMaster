@@ -5,5 +5,6 @@ import { sleeperPlatform } from './sleeper/sleeperPlatform.ts'
 import type { FantasyPlatform } from './types.ts'
 
 // Set by `npm run dev:mock`, or by VITE_USE_MOCK=true in a .env.local file
-export const platform: FantasyPlatform =
-  import.meta.env.VITE_USE_MOCK === 'true' ? mockPlatform : sleeperPlatform
+export const usingMock = import.meta.env.VITE_USE_MOCK === 'true'
+
+export const platform: FantasyPlatform = usingMock ? mockPlatform : sleeperPlatform
