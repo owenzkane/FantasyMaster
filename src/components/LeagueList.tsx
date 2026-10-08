@@ -1,8 +1,8 @@
-import type { LeagueMatchup } from '../hooks/useLeagues.ts'
+import type { LeagueSummary } from '../hooks/useLeagues.ts'
 import LeagueCard from './LeagueCard.tsx'
 
 interface Props {
-  leagues: LeagueMatchup[]
+  leagues: LeagueSummary[]
 }
 
 function LeagueList({ leagues }: Props) {

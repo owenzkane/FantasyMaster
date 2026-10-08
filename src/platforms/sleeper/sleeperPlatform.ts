@@ -1,7 +1,14 @@
 // Sleeper's implementation of FantasyPlatform: fetch raw JSON, convert it to our types.
 
-import type { FantasyPlatform, League, Matchup } from '../types.ts'
-import { fetchLeagues, fetchMatchups, fetchRosters, fetchState, fetchUser } from './sleeperApi.ts'
+import type { FantasyPlatform, League, LeagueWeek } from '../types.ts'
+import {
+  fetchLeagues,
+  fetchMatchups,
+  fetchPlayerDirectory,
+  fetchRosters,
+  fetchState,
+  fetchUser,
+} from './sleeperApi.ts'
 import type { SleeperLeague, SleeperMatchup, SleeperRoster } from './sleeperTypes.ts'
 
 export function toLeague(league: SleeperLeague): League {
@@ -14,21 +21,25 @@ export function toLeague(league: SleeperLeague): League {
   }
 }
 
-// Works out one user's matchup from a league's rosters and one week's matchup entries.
-export function toMatchup(
+// Works out one user's matchup and players from a league's rosters and one week's matchup entries.
+export function toLeagueWeek(
   leagueId: string,
   week: number,
   userId: string,
   rosters: SleeperRoster[],
   matchups: SleeperMatchup[],
-): Matchup | null {
+): LeagueWeek {
   const myRoster = rosters.find(
     (roster) => roster.owner_id === userId || roster.co_owners?.includes(userId),
   )
-  if (!myRoster) return null
+  if (!myRoster) return { matchup: null, myPlayers: [] }
 
   const mine = matchups.find((entry) => entry.roster_id === myRoster.roster_id)
-  if (!mine) return null
+  if (!mine) {
+    // No entry for the week, so fall back to my current roster with no scores
+    const players = myRoster.players ?? []
+    return { matchup: null, myPlayers: players.map((playerId) => ({ playerId, points: null })) }
+  }
 
   // matchup_id is null when I have no game, and two nulls must not count as a pairing
   const opponent =
@@ -38,11 +49,19 @@ export function toMatchup(
           (entry) => entry.matchup_id === mine.matchup_id && entry.roster_id !== mine.roster_id,
         )
 
+  // The entry's own player list is my roster as it was that week, which can differ from today's
+  const players = mine.players ?? []
   return {
-    leagueId,
-    week,
-    myPoints: mine.points,
-    opponentPoints: opponent ? opponent.points : null,
+    matchup: {
+      leagueId,
+      week,
+      myPoints: mine.points,
+      opponentPoints: opponent ? opponent.points : null,
+    },
+    myPlayers: players.map((playerId) => ({
+      playerId,
+      points: mine.players_points?.[playerId] ?? null,
+    })),
   }
 }
 
@@ -63,12 +82,16 @@ export const sleeperPlatform: FantasyPlatform = {
     return leagues.map(toLeague)
   },
 
-  async getMatchup(leagueId, userId, week) {
+  async getLeagueWeek(leagueId, userId, week) {
     // The two calls don't depend on each other, so run them at the same time
     const [rosters, matchups] = await Promise.all([
       fetchRosters(leagueId),
       fetchMatchups(leagueId, week),
     ])
-    return toMatchup(leagueId, week, userId, rosters, matchups)
+    return toLeagueWeek(leagueId, week, userId, rosters, matchups)
+  },
+
+  getPlayerDirectory() {
+    return fetchPlayerDirectory()
   },
 }

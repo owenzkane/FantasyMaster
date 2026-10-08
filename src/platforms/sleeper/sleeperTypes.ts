@@ -28,6 +28,8 @@ export interface SleeperRoster {
   // null when the team has no owner yet
   owner_id: string | null
   co_owners: string[] | null
+  // the team's current players; null before the league has drafted
+  players: string[] | null
 }
 
 // GET /league/{league_id}/matchups/{week} returns SleeperMatchup[], one entry per team
@@ -36,4 +38,7 @@ export interface SleeperMatchup {
   // shared by the two teams playing each other; null when a team has no game
   matchup_id: number | null
   points: number
+  // the team's players that week, and each one's points in this league's scoring
+  players: string[] | null
+  players_points: Record<string, number> | null
 }

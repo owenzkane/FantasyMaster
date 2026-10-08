@@ -1,7 +1,8 @@
 // A FantasyPlatform that answers from the saved JSON in ./fixtures instead of the network.
 // The fixtures are Sleeper-shaped, so it reuses Sleeper's conversion functions.
 
-import { toLeague, toMatchup } from '../sleeper/sleeperPlatform.ts'
+import { fetchPlayerDirectory } from '../sleeper/sleeperApi.ts'
+import { toLeague, toLeagueWeek } from '../sleeper/sleeperPlatform.ts'
 import type {
   SleeperLeague,
   SleeperMatchup,
@@ -39,10 +40,14 @@ export const mockPlatform: FantasyPlatform = {
     return leagues.filter((league) => league.season === season).map(toLeague)
   },
 
-  async getMatchup(leagueId, userId, week) {
-    const rosters = fixture<SleeperRoster[]>(`rosters-${leagueId}`)
-    const matchups = fixture<SleeperMatchup[]>(`matchups-${leagueId}-week${week}`)
-    if (!rosters || !matchups) return null
-    return toMatchup(leagueId, week, userId, rosters, matchups)
+  async getLeagueWeek(leagueId, userId, week) {
+    const rosters = fixture<SleeperRoster[]>(`rosters-${leagueId}`) ?? []
+    const matchups = fixture<SleeperMatchup[]>(`matchups-${leagueId}-week${week}`) ?? []
+    return toLeagueWeek(leagueId, week, userId, rosters, matchups)
+  },
+
+  // The player list is already a local file, so the mock loads the same one
+  getPlayerDirectory() {
+    return fetchPlayerDirectory()
   },
 }
