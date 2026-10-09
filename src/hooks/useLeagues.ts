@@ -15,6 +15,7 @@ export interface LeagueSummary {
   // null when the league has no game for me this week
   matchup: Matchup | null
   myPlayers: PlayerPoints[]
+  opponentPlayers: PlayerPoints[]
 }
 
 export type LeaguesState =

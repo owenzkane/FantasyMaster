@@ -32,6 +32,14 @@ export interface SleeperRoster {
   players: string[] | null
 }
 
+// GET /league/{league_id}/users returns SleeperLeagueUser[]
+export interface SleeperLeagueUser {
+  user_id: string
+  display_name: string
+  // team_name is only present once the owner has set one
+  metadata: { team_name?: string } | null
+}
+
 // GET /league/{league_id}/matchups/{week} returns SleeperMatchup[], one entry per team
 export interface SleeperMatchup {
   roster_id: number
@@ -41,4 +49,6 @@ export interface SleeperMatchup {
   // the team's players that week, and each one's points in this league's scoring
   players: string[] | null
   players_points: Record<string, number> | null
+  // player IDs in lineup order; an empty lineup slot is "0"
+  starters: string[] | null
 }

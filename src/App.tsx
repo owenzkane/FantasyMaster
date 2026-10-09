@@ -82,7 +82,17 @@ function App() {
                 </button>
               </div>
               {view === 'leagues' ? (
-                <LeagueList leagues={state.leagues} />
+                <LeagueList
+                  leagues={state.leagues}
+                  timing={
+                    state.week < state.currentWeek
+                      ? 'past'
+                      : state.week > state.currentWeek
+                        ? 'future'
+                        : 'current'
+                  }
+                  directory={state.players}
+                />
               ) : (
                 <PlayersTable players={combinePlayers(state.leagues)} directory={state.players} />
               )}

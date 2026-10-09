@@ -5,6 +5,7 @@ import { fetchPlayerDirectory } from '../sleeper/sleeperApi.ts'
 import { toLeague, toLeagueWeek } from '../sleeper/sleeperPlatform.ts'
 import type {
   SleeperLeague,
+  SleeperLeagueUser,
   SleeperMatchup,
   SleeperRoster,
   SleeperState,
@@ -42,8 +43,9 @@ export const mockPlatform: FantasyPlatform = {
 
   async getLeagueWeek(leagueId, userId, week) {
     const rosters = fixture<SleeperRoster[]>(`rosters-${leagueId}`) ?? []
+    const users = fixture<SleeperLeagueUser[]>(`users-${leagueId}`) ?? []
     const matchups = fixture<SleeperMatchup[]>(`matchups-${leagueId}-week${week}`) ?? []
-    return toLeagueWeek(leagueId, week, userId, rosters, matchups)
+    return toLeagueWeek(leagueId, week, userId, rosters, users, matchups)
   },
 
   // The player list is already a local file, so the mock loads the same one

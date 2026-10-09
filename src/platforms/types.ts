@@ -20,26 +20,39 @@ export interface League {
   teamCount: number
 }
 
+export interface Opponent {
+  // null when the opposing team has no owner
+  displayName: string | null
+  // null when the owner hasn't named their team
+  teamName: string | null
+  points: number
+}
+
 export interface Matchup {
   leagueId: string
   week: number
   myPoints: number
   // null when I have no opponent this week (bye, or a league without head-to-head games)
-  opponentPoints: number | null
+  opponent: Opponent | null
 }
 
-// One of my players in one league, with points in that league's scoring
+// One player on one team in one league, with points in that league's scoring
 export interface PlayerPoints {
   playerId: string
   // null when there are no scores for the week
   points: number | null
+  // only starters count towards the team's score
+  isStarter: boolean
 }
 
 // Everything we need about one league for one week
 export interface LeagueWeek {
   // null when the user has no team in that league, or the league has no games that week
   matchup: Matchup | null
+  // starters first, in lineup order, then the bench
   myPlayers: PlayerPoints[]
+  // empty when there is no opponent
+  opponentPlayers: PlayerPoints[]
 }
 
 export interface PlayerInfo {

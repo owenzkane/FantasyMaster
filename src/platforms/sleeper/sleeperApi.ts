@@ -3,6 +3,7 @@
 import type { PlayerDirectory } from '../types.ts'
 import type {
   SleeperLeague,
+  SleeperLeagueUser,
   SleeperMatchup,
   SleeperRoster,
   SleeperState,
@@ -34,6 +35,10 @@ export function fetchLeagues(userId: string, season: string) {
 
 export function fetchRosters(leagueId: string) {
   return getJson<SleeperRoster[]>(`/league/${leagueId}/rosters`)
+}
+
+export function fetchLeagueUsers(leagueId: string) {
+  return getJson<SleeperLeagueUser[]>(`/league/${leagueId}/users`)
 }
 
 export function fetchMatchups(leagueId: string, week: number) {
