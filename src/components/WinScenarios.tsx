@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import type { LeagueSummary } from '../hooks/useLeagues.ts'
-import type { PlayerDirectory } from '../platforms/types.ts'
+import type { PlayerDirectory, WeekStats } from '../platforms/types.ts'
+import { statInputs } from '../scenarios/statLine.ts'
 import { scenarioPlayers, scoringFormat, winScenarios } from '../scenarios/winScenarios.ts'
 import type { LeagueScenario } from '../scenarios/winScenarios.ts'
+import StatLineWhatIf from './StatLineWhatIf.tsx'
 
 interface Props {
   leagues: LeagueSummary[]
   directory: PlayerDirectory
+  stats: WeekStats
+  week: number
 }
 
 const ROLE_LABELS = {
@@ -26,7 +30,7 @@ function needs({ role, threshold }: LeagueScenario) {
   return threshold <= 0 ? 'You can’t win' : `Fewer than ${threshold.toFixed(2)}`
 }
 
-function WinScenarios({ leagues, directory }: Props) {
+function WinScenarios({ leagues, directory, stats, week }: Props) {
   const [chosenId, setChosenId] = useState('')
 
   const options = scenarioPlayers(leagues)
@@ -40,6 +44,8 @@ function WinScenarios({ leagues, directory }: Props) {
     ? chosenId
     : options[0].playerId
   const scenarios = winScenarios(playerId, leagues)
+  const position = directory[playerId]?.position ?? null
+  const inputs = statInputs(position)
 
   return (
     <div className="scenarios">
@@ -88,6 +94,22 @@ function WinScenarios({ leagues, directory }: Props) {
         Points are in each league’s own scoring, with every other player held at his current
         score. Landing exactly on a number is a tie.
       </p>
+
+      {inputs ? (
+        // A new key makes React throw away the old what-if and start a fresh one,
+        // so the typed-in line resets when the player or week changes
+        <StatLineWhatIf
+          key={`${week}-${playerId}`}
+          scenarios={scenarios}
+          position={position}
+          inputs={inputs}
+          actual={stats[playerId] ?? {}}
+        />
+      ) : (
+        <p className="scenario-note">
+          The stat-line what-if covers quarterbacks, running backs, receivers and tight ends.
+        </p>
+      )}
     </div>
   )
 }

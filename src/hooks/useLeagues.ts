@@ -8,6 +8,7 @@ import type {
   PlayerDirectory,
   PlayerPoints,
   User,
+  WeekStats,
 } from '../platforms/types.ts'
 
 export interface LeagueSummary {
@@ -33,6 +34,8 @@ export type LeaguesState =
       // true while another week is being fetched; the old week stays on screen meanwhile
       changingWeek: boolean
       leagues: LeagueSummary[]
+      // every player's real stat line for the week shown; empty if it couldn't be loaded
+      stats: WeekStats
       players: PlayerDirectory
     }
 
@@ -40,11 +43,17 @@ function errorState(error: unknown): LeaguesState {
   return { status: 'error', message: error instanceof Error ? error.message : String(error) }
 }
 
-async function loadLeagueWeeks(leagues: League[], userId: string, week: number) {
-  const weeks = await Promise.all(
-    leagues.map((league) => platform.getLeagueWeek(league.id, userId, week)),
-  )
-  return leagues.map((league, i): LeagueSummary => ({ league, ...weeks[i] }))
+// Everything that depends on the week: each league's matchup and players, plus real stat lines
+async function loadWeek(leagues: League[], userId: string, season: string, week: number) {
+  const [weeks, stats] = await Promise.all([
+    Promise.all(leagues.map((league) => platform.getLeagueWeek(league.id, userId, week))),
+    // Stats only feed the what-if calculator, so a failure here shouldn't block the page
+    platform.getWeekStats(season, week).catch((): WeekStats => ({})),
+  ])
+  return {
+    leagues: leagues.map((league, i): LeagueSummary => ({ league, ...weeks[i] })),
+    stats,
+  }
 }
 
 export function useLeagues() {
@@ -72,7 +81,7 @@ export function useLeagues() {
         currentWeek: now.week,
         week: now.week,
         changingWeek: false,
-        leagues: await loadLeagueWeeks(leagues, user.id, now.week),
+        ...(await loadWeek(leagues, user.id, now.season, now.week)),
         players,
       })
     } catch (error) {
@@ -91,7 +100,7 @@ export function useLeagues() {
         ...loaded,
         week,
         changingWeek: false,
-        leagues: await loadLeagueWeeks(leagues, loaded.user.id, week),
+        ...(await loadWeek(leagues, loaded.user.id, loaded.season, week)),
       })
     } catch (error) {
       setState(errorState(error))

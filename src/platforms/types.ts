@@ -66,6 +66,12 @@ export interface PlayerInfo {
 // Player details by player ID. An ID can be missing if the saved list is out of date.
 export type PlayerDirectory = Record<string, PlayerInfo>
 
+// One player's stats for one week, keyed by Sleeper's stat names, e.g. { rec: 6, rec_yd: 80 }
+export type StatLine = Record<string, number>
+
+// Every player's stat line for one week, by player ID. Players who didn't play are missing.
+export type WeekStats = Record<string, StatLine>
+
 // The contract every platform (Sleeper now, maybe ESPN or Yahoo later) must fulfil.
 export interface FantasyPlatform {
   // null when no user has that username
@@ -74,4 +80,5 @@ export interface FantasyPlatform {
   getLeagues(userId: string, season: string): Promise<League[]>
   getLeagueWeek(leagueId: string, userId: string, week: number): Promise<LeagueWeek>
   getPlayerDirectory(): Promise<PlayerDirectory>
+  getWeekStats(season: string, week: number): Promise<WeekStats>
 }

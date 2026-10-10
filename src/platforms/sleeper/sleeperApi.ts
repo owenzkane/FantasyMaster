@@ -1,6 +1,6 @@
 // Raw calls to Sleeper, one function per endpoint. No conversion happens here.
 
-import type { PlayerDirectory } from '../types.ts'
+import type { PlayerDirectory, WeekStats } from '../types.ts'
 import type {
   SleeperLeague,
   SleeperLeagueUser,
@@ -43,6 +43,11 @@ export function fetchLeagueUsers(leagueId: string) {
 
 export function fetchMatchups(leagueId: string, week: number) {
   return getJson<SleeperMatchup[]>(`/league/${leagueId}/matchups/${week}`)
+}
+
+// Undocumented: this endpoint isn't in Sleeper's public docs, so it could change without notice
+export function fetchWeekStats(season: string, week: number) {
+  return getJson<WeekStats>(`/stats/nfl/regular/${season}/${week}`)
 }
 
 // Not a Sleeper call: this is our own slimmed copy of Sleeper's 14.7 MB player list,

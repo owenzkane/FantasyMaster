@@ -369,3 +369,64 @@ summary.league-card-row:focus-visible {
   margin: 12px 0 0;
   font-size: 0.75rem;
 }
+
+/* Stat-line what-if */
+
+.what-if {
+  margin-top: 28px;
+}
+
+.what-if h3 {
+  margin-bottom: 10px;
+}
+
+.stat-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.stat-inputs label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.75rem;
+}
+
+.stat-inputs input {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--text-strong);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.what-if-summary {
+  margin: 16px 0 8px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.solve-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.solve-picker select {
+  padding: 2px 4px;
+  font: inherit;
+  color: var(--text-strong);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.stat-inputs input:focus-visible,
+.solve-picker select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

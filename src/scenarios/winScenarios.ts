@@ -25,7 +25,7 @@ export interface LeagueScenario {
 }
 
 // Fantasy points have two decimals; rounding hides floating-point noise like 14.200000000000003
-function round2(value: number) {
+export function round2(value: number) {
   return Math.round(value * 100) / 100
 }
 

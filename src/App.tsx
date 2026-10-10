@@ -90,7 +90,12 @@ function App() {
                 </button>
               </div>
               {view === 'scenarios' ? (
-                <WinScenarios leagues={state.leagues} directory={state.players} />
+                <WinScenarios
+                  leagues={state.leagues}
+                  directory={state.players}
+                  stats={state.stats}
+                  week={state.week}
+                />
               ) : view === 'leagues' ? (
                 <LeagueList
                   leagues={state.leagues}

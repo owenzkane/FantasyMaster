@@ -9,6 +9,7 @@ import {
   fetchRosters,
   fetchState,
   fetchUser,
+  fetchWeekStats,
 } from './sleeperApi.ts'
 import type {
   SleeperLeague,
@@ -129,5 +130,9 @@ export const sleeperPlatform: FantasyPlatform = {
 
   getPlayerDirectory() {
     return fetchPlayerDirectory()
+  },
+
+  getWeekStats(season, week) {
+    return fetchWeekStats(season, week)
   },
 }

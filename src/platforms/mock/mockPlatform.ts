@@ -11,7 +11,7 @@ import type {
   SleeperState,
   SleeperUser,
 } from '../sleeper/sleeperTypes.ts'
-import type { FantasyPlatform } from '../types.ts'
+import type { FantasyPlatform, WeekStats } from '../types.ts'
 
 // Week 4 is the finished week in the fixtures; week 5 was saved before any games
 const MOCK_WEEK = 4
@@ -51,5 +51,9 @@ export const mockPlatform: FantasyPlatform = {
   // The player list is already a local file, so the mock loads the same one
   getPlayerDirectory() {
     return fetchPlayerDirectory()
+  },
+
+  async getWeekStats(_season, week) {
+    return fixture<WeekStats>(`stats-week${week}`) ?? {}
   },
 }
