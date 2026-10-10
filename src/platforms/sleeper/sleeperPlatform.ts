@@ -28,6 +28,7 @@ export function toLeague(league: SleeperLeague, userId: string): League {
     myTeamId: userId,
     pointsPerReception: league.scoring_settings.rec ?? 0,
     scoring: league.scoring_settings,
+    scoringGaps: 0,
   }
 }
 

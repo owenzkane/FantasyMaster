@@ -11,6 +11,7 @@ import type {
 } from '../types.ts'
 import { fetchEspnLeague, fetchEspnWeek } from './espnApi.ts'
 import { toSleeperPlayerId } from './espnPlayers.ts'
+import { toScoring } from './espnStats.ts'
 import type { EspnLeagueResponse, EspnMatchupSide } from './espnTypes.ts'
 
 const RECEPTIONS_STAT_ID = 53
@@ -22,9 +23,9 @@ export function toEspnLeagueChoice(response: EspnLeagueResponse): EspnLeagueChoi
   const { settings, teams, members } = response
   if (!settings || !teams) return null
 
-  const perReception = settings.scoringSettings.scoringItems.find(
-    (item) => item.statId === RECEPTIONS_STAT_ID,
-  )
+  const items = settings.scoringSettings.scoringItems
+  const perReception = items.find((item) => item.statId === RECEPTIONS_STAT_ID)
+  const { scoring, gaps } = toScoring(items)
   return {
     league: {
       id: String(response.id),
@@ -33,8 +34,8 @@ export function toEspnLeagueChoice(response: EspnLeagueResponse): EspnLeagueChoi
       season: String(response.seasonId),
       teamCount: settings.size,
       pointsPerReception: perReception?.points ?? 0,
-      // ESPN's numbered stats aren't translated to our stat names yet
-      scoring: null,
+      scoring,
+      scoringGaps: gaps,
     },
     teams: teams.map((team) => ({
       id: String(team.id),

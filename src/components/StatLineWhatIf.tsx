@@ -56,7 +56,7 @@ function StatLineWhatIf({ scenarios, position, inputs, actual }: Props) {
   const line: StatLine = {}
   for (const input of inputs) line[input.key] = Math.max(0, Number(text[input.key]) || 0)
 
-  // Leagues whose rules aren't in our stat names yet (ESPN) can't be converted
+  // A league whose rules can't be expressed in our stat names can't be converted
   const rows = scenarios.flatMap((scenario) => {
     const scoring = scenario.league.scoring
     if (!scoring) return []
@@ -74,6 +74,7 @@ function StatLineWhatIf({ scenarios, position, inputs, actual }: Props) {
     ]
   })
   const unsupported = scenarios.filter((scenario) => !scenario.league.scoring)
+  const approximate = scenarios.filter((scenario) => scenario.league.scoringGaps > 0)
 
   const counted = rows.filter((row) => row.scenario.threshold !== null)
   const wins = counted.filter((row) => result(row.scenario, row.points) === 'Win').length
@@ -147,9 +148,14 @@ function StatLineWhatIf({ scenarios, position, inputs, actual }: Props) {
       </div>
       {unsupported.length > 0 && (
         <p className="scenario-note">
-          Not available for ESPN leagues yet:{' '}
-          {unsupported.map((scenario) => scenario.league.name).join(', ')}. The table above
-          still covers them.
+          Not available for {unsupported.map((scenario) => scenario.league.name).join(', ')}.
+          The table above still covers it.
+        </p>
+      )}
+      {approximate.length > 0 && (
+        <p className="scenario-note">
+          Approximate for {approximate.map((scenario) => scenario.league.name).join(', ')}: it
+          has scoring rules this calculator doesn’t know, so his points here may be off.
         </p>
       )}
       <p className="scenario-note">

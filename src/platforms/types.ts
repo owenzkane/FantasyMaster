@@ -22,8 +22,11 @@ export interface League {
   myTeamId: string
   pointsPerReception: number
   // points per stat, keyed by Sleeper's stat names, e.g. { rec: 0.5, rec_yd: 0.1, rec_td: 6 }.
-  // null when the platform's rules haven't been translated to those names yet (ESPN).
+  // null when a platform's rules can't be expressed in those names at all.
   scoring: Record<string, number> | null
+  // how many of the league's offensive scoring rules are missing from `scoring` (ESPN rules
+  // with no translation). Above zero, anything calculated from `scoring` is approximate.
+  scoringGaps: number
 }
 
 export interface Opponent {
