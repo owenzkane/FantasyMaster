@@ -24,6 +24,7 @@ export function toLeague(league: SleeperLeague): League {
     name: league.name,
     season: league.season,
     teamCount: league.total_rosters,
+    scoring: league.scoring_settings,
   }
 }
 

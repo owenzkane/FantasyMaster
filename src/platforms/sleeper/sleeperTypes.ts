@@ -20,6 +20,8 @@ export interface SleeperLeague {
   name: string
   season: string
   total_rosters: number
+  // points per stat, e.g. { rec: 0.5, rec_yd: 0.1, rec_td: 6 }
+  scoring_settings: Record<string, number>
 }
 
 // GET /league/{league_id}/rosters returns SleeperRoster[]

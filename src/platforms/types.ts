@@ -18,6 +18,8 @@ export interface League {
   name: string
   season: string
   teamCount: number
+  // points per stat, keyed by Sleeper's stat names, e.g. { rec: 0.5, rec_yd: 0.1, rec_td: 6 }
+  scoring: Record<string, number>
 }
 
 export interface Opponent {

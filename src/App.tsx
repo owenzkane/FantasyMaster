@@ -2,13 +2,14 @@ import { useState } from 'react'
 import LeagueList from './components/LeagueList.tsx'
 import PlayersTable from './components/PlayersTable.tsx'
 import UsernameForm from './components/UsernameForm.tsx'
+import WinScenarios from './components/WinScenarios.tsx'
 import WeekPicker from './components/WeekPicker.tsx'
 import { useLeagues } from './hooks/useLeagues.ts'
 import { usingMock } from './platforms/index.ts'
 import { combinePlayers } from './players/combinePlayers.ts'
 import './App.css'
 
-type View = 'leagues' | 'players'
+type View = 'leagues' | 'players' | 'scenarios'
 
 // The NFL regular season is 18 weeks
 const LAST_WEEK = 18
@@ -80,8 +81,17 @@ function App() {
                 >
                   My players
                 </button>
+                <button
+                  type="button"
+                  aria-pressed={view === 'scenarios'}
+                  onClick={() => setView('scenarios')}
+                >
+                  Win scenarios
+                </button>
               </div>
-              {view === 'leagues' ? (
+              {view === 'scenarios' ? (
+                <WinScenarios leagues={state.leagues} directory={state.players} />
+              ) : view === 'leagues' ? (
                 <LeagueList
                   leagues={state.leagues}
                   timing={

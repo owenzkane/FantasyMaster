@@ -338,3 +338,34 @@ summary.league-card-row:focus-visible {
 .player-leagues .number {
   color: var(--text-strong);
 }
+
+/* Win scenarios */
+
+.scenario-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 0.875rem;
+}
+
+.scenario-picker select {
+  max-width: 100%;
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--text-strong);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.scenario-picker select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.scenario-note {
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+}
