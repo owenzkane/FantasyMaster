@@ -1,6 +1,6 @@
 // Sleeper's implementation of FantasyPlatform: fetch raw JSON, convert it to our types.
 
-import type { FantasyPlatform, League, LeagueWeek, PlayerPoints } from '../types.ts'
+import type { League, LeagueWeek, PlayerPoints, SleeperSource } from '../types.ts'
 import {
   fetchLeagues,
   fetchLeagueUsers,
@@ -18,13 +18,15 @@ import type {
   SleeperRoster,
 } from './sleeperTypes.ts'
 
-export function toLeague(league: SleeperLeague): League {
+export function toLeague(league: SleeperLeague, userId: string): League {
   return {
     id: league.league_id,
     platform: 'sleeper',
     name: league.name,
     season: league.season,
     teamCount: league.total_rosters,
+    myTeamId: userId,
+    pointsPerReception: league.scoring_settings.rec ?? 0,
     scoring: league.scoring_settings,
   }
 }
@@ -101,7 +103,7 @@ export function toLeagueWeek(
   }
 }
 
-export const sleeperPlatform: FantasyPlatform = {
+export const sleeperPlatform: SleeperSource = {
   async getUser(username) {
     const user = await fetchUser(username)
     if (!user) return null
@@ -115,17 +117,17 @@ export const sleeperPlatform: FantasyPlatform = {
 
   async getLeagues(userId, season) {
     const leagues = await fetchLeagues(userId, season)
-    return leagues.map(toLeague)
+    return leagues.map((league) => toLeague(league, userId))
   },
 
-  async getLeagueWeek(leagueId, userId, week) {
+  async getLeagueWeek(league, week) {
     // The three calls don't depend on each other, so run them at the same time
     const [rosters, users, matchups] = await Promise.all([
-      fetchRosters(leagueId),
-      fetchLeagueUsers(leagueId),
-      fetchMatchups(leagueId, week),
+      fetchRosters(league.id),
+      fetchLeagueUsers(league.id),
+      fetchMatchups(league.id, week),
     ])
-    return toLeagueWeek(leagueId, week, userId, rosters, users, matchups)
+    return toLeagueWeek(league.id, week, league.myTeamId, rosters, users, matchups)
   },
 
   getPlayerDirectory() {

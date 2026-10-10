@@ -56,19 +56,24 @@ function StatLineWhatIf({ scenarios, position, inputs, actual }: Props) {
   const line: StatLine = {}
   for (const input of inputs) line[input.key] = Math.max(0, Number(text[input.key]) || 0)
 
-  const rows = scenarios.map((scenario) => {
+  // Leagues whose rules aren't in our stat names yet (ESPN) can't be converted
+  const rows = scenarios.flatMap((scenario) => {
     const scoring = scenario.league.scoring
+    if (!scoring) return []
     const pointsWith = (changes: StatLine) =>
       round2(pointsFor(applyLine(actual, { ...line, ...changes }, position), scoring))
-    return {
-      scenario,
-      points: pointsWith({}),
-      kept: round2(keptPoints(actual, inputs, position, scoring)),
-      needed: needed(scenario, solveInput.solveMax ?? 0, (value) =>
-        pointsWith({ [solveInput.key]: value }),
-      ),
-    }
+    return [
+      {
+        scenario,
+        points: pointsWith({}),
+        kept: round2(keptPoints(actual, inputs, position, scoring)),
+        needed: needed(scenario, solveInput.solveMax ?? 0, (value) =>
+          pointsWith({ [solveInput.key]: value }),
+        ),
+      },
+    ]
   })
+  const unsupported = scenarios.filter((scenario) => !scenario.league.scoring)
 
   const counted = rows.filter((row) => row.scenario.threshold !== null)
   const wins = counted.filter((row) => result(row.scenario, row.points) === 'Win').length
@@ -140,6 +145,13 @@ function StatLineWhatIf({ scenarios, position, inputs, actual }: Props) {
           </tbody>
         </table>
       </div>
+      {unsupported.length > 0 && (
+        <p className="scenario-note">
+          Not available for ESPN leagues yet:{' '}
+          {unsupported.map((scenario) => scenario.league.name).join(', ')}. The table above
+          still covers them.
+        </p>
+      )}
       <p className="scenario-note">
         “Needed” solves for one stat with the rest of the line as typed. “Kept” points come from
         rules a basic line can’t express, such as first downs and long-play bonuses; they stay

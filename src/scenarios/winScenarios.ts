@@ -92,7 +92,7 @@ export function scenarioPlayers(leagues: LeagueWeekData[]): ScenarioPlayer[] {
 
 // A short name for a league's reception scoring, the rule people most often mean by "format"
 export function scoringFormat(league: League) {
-  const perReception = league.scoring.rec ?? 0
+  const perReception = league.pointsPerReception
   if (perReception === 1) return 'PPR'
   if (perReception === 0.5) return 'Half PPR'
   if (perReception === 0) return 'Standard'

@@ -11,6 +11,8 @@ interface Props {
   directory: PlayerDirectory
 }
 
+const PLATFORM_NAMES = { sleeper: 'Sleeper', espn: 'ESPN' }
+
 function opponentLabel(opponent: Opponent) {
   const name = opponent.displayName ?? 'Unknown opponent'
   return opponent.teamName ? `${opponent.teamName} (${name})` : name
@@ -34,7 +36,9 @@ function LeagueCard({ summary, timing, directory }: Props) {
         <div className="league-card-row">
           <div>
             <h3>{league.name}</h3>
-            <p className="league-meta">{league.teamCount} teams</p>
+            <p className="league-meta">
+              {PLATFORM_NAMES[league.platform]} · {league.teamCount} teams
+            </p>
           </div>
           <p className="no-matchup">No matchup this week</p>
         </div>
@@ -53,7 +57,8 @@ function LeagueCard({ summary, timing, directory }: Props) {
           <div>
             <h3>{league.name}</h3>
             <p className="league-meta">
-              {league.teamCount} teams · {opponent ? `vs. ${opponentLabel(opponent)}` : 'No opponent'}
+              {PLATFORM_NAMES[league.platform]} · {league.teamCount} teams ·{' '}
+              {opponent ? `vs. ${opponentLabel(opponent)}` : 'No opponent'}
             </p>
           </div>
           <div className="league-card-result">

@@ -20,6 +20,8 @@ for (const [id, player] of Object.entries(players)) {
     position: player.position ?? null,
     team: player.team ?? null,
   }
+  // Used to recognise the same player in an ESPN league
+  if (player.espn_id) slim[id].espnId = player.espn_id
 }
 
 await writeFile(OUTPUT, JSON.stringify(slim))

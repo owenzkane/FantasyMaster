@@ -1,8 +1,9 @@
-// Holds the page's data state: nothing yet, loading, failed, or a user's leagues for the week.
+// Holds the page's data state: nothing linked, loading, failed, or every linked league's week.
 
-import { useState } from 'react'
-import { platform } from '../platforms/index.ts'
+import { useEffect, useState } from 'react'
+import { espn, nfl, platformFor, sleeper } from '../platforms/index.ts'
 import type {
+  EspnLeagueChoice,
   League,
   Matchup,
   PlayerDirectory,
@@ -10,6 +11,8 @@ import type {
   User,
   WeekStats,
 } from '../platforms/types.ts'
+import { hasLinks, readLinks, saveLinks } from './links.ts'
+import type { Links } from './links.ts'
 
 export interface LeagueSummary {
   league: League
@@ -22,11 +25,10 @@ export interface LeagueSummary {
 export type LeaguesState =
   | { status: 'idle' }
   | { status: 'loading' }
-  | { status: 'notFound'; username: string }
   | { status: 'error'; message: string }
   | {
       status: 'loaded'
-      user: User
+      sleeperUser: User | null
       season: string
       // the real current week, and the week being shown
       currentWeek: number
@@ -37,6 +39,8 @@ export type LeaguesState =
       // every player's real stat line for the week shown; empty if it couldn't be loaded
       stats: WeekStats
       players: PlayerDirectory
+      // things that went wrong without stopping the load, e.g. an ESPN league that turned private
+      warnings: string[]
     }
 
 function errorState(error: unknown): LeaguesState {
@@ -44,11 +48,11 @@ function errorState(error: unknown): LeaguesState {
 }
 
 // Everything that depends on the week: each league's matchup and players, plus real stat lines
-async function loadWeek(leagues: League[], userId: string, season: string, week: number) {
+async function loadWeek(leagues: League[], season: string, week: number) {
   const [weeks, stats] = await Promise.all([
-    Promise.all(leagues.map((league) => platform.getLeagueWeek(league.id, userId, week))),
+    Promise.all(leagues.map((league) => platformFor(league).getLeagueWeek(league, week))),
     // Stats only feed the what-if calculator, so a failure here shouldn't block the page
-    platform.getWeekStats(season, week).catch((): WeekStats => ({})),
+    nfl.getWeekStats(season, week).catch((): WeekStats => ({})),
   ])
   return {
     leagues: leagues.map((league, i): LeagueSummary => ({ league, ...weeks[i] })),
@@ -56,40 +60,127 @@ async function loadWeek(leagues: League[], userId: string, season: string, week:
   }
 }
 
-export function useLeagues() {
-  const [state, setState] = useState<LeaguesState>({ status: 'idle' })
+interface LoadResult {
+  // the links that actually worked, which is what gets remembered
+  links: Links
+  state: LeaguesState
+}
 
-  async function load(username: string) {
-    setState({ status: 'loading' })
-    try {
-      const [user, now, players] = await Promise.all([
-        platform.getUser(username),
-        platform.getCurrentWeek(),
-        platform.getPlayerDirectory(),
-      ])
-      if (!user) {
-        setState({ status: 'notFound', username })
-        return
+// Loads everything for a set of links. Every change to the links goes through here.
+async function loadLinks(wanted: Links): Promise<LoadResult> {
+  if (!hasLinks(wanted)) return { links: wanted, state: { status: 'idle' } }
+  try {
+    const warnings: string[] = []
+    const [now, players] = await Promise.all([nfl.getCurrentWeek(), nfl.getPlayerDirectory()])
+
+    let sleeperUser: User | null = null
+    let sleeperLeagues: League[] = []
+    if (wanted.sleeperUsername) {
+      sleeperUser = await sleeper.getUser(wanted.sleeperUsername)
+      if (sleeperUser) {
+        sleeperLeagues = await sleeper.getLeagues(sleeperUser.id, now.season)
+      } else {
+        warnings.push(`No Sleeper user named “${wanted.sleeperUsername}”.`)
       }
+    }
 
-      const leagues = await platform.getLeagues(user.id, now.season)
+    const espnChoices = await Promise.all(
+      wanted.espnLeagues.map((link) => espn.findLeague(link.leagueId, now.season)),
+    )
+    const espnLeagues: League[] = []
+    wanted.espnLeagues.forEach((link, i) => {
+      const choice = espnChoices[i]
+      if (choice) {
+        espnLeagues.push({ ...choice.league, myTeamId: link.teamId })
+      } else {
+        warnings.push(`ESPN league ${link.leagueId} couldn’t be loaded. It may be private now.`)
+      }
+    })
 
-      setState({
+    return {
+      links: {
+        sleeperUsername: sleeperUser ? wanted.sleeperUsername : null,
+        espnLeagues: wanted.espnLeagues.filter((_, i) => espnChoices[i] !== null),
+      },
+      state: {
         status: 'loaded',
-        user,
+        sleeperUser,
         season: now.season,
         currentWeek: now.week,
         week: now.week,
         changingWeek: false,
-        ...(await loadWeek(leagues, user.id, now.season, now.week)),
+        ...(await loadWeek([...sleeperLeagues, ...espnLeagues], now.season, now.week)),
         players,
-      })
-    } catch (error) {
-      setState(errorState(error))
+        warnings,
+      },
     }
+  } catch (error) {
+    // A network failure says nothing about the links, so keep them
+    return { links: wanted, state: errorState(error) }
+  }
+}
+
+export function useLeagues() {
+  const [links, setLinks] = useState<Links>(readLinks)
+  // Start in "loading" if a previous visit left links behind, since the effect below loads them
+  const [state, setState] = useState<LeaguesState>(() =>
+    hasLinks(readLinks()) ? { status: 'loading' } : { status: 'idle' },
+  )
+
+  function apply(result: LoadResult) {
+    setLinks(result.links)
+    saveLinks(result.links)
+    setState(result.state)
   }
 
-  // Shows a different week for the user already loaded. Only the per-league data is refetched.
+  async function load(wanted: Links) {
+    setState({ status: 'loading' })
+    apply(await loadLinks(wanted))
+  }
+
+  // On the first render, load whatever was linked on a previous visit.
+  // An empty dependency list means "run once, after the component first appears".
+  useEffect(() => {
+    const saved = readLinks()
+    if (!hasLinks(saved)) return
+    // In development React runs effects twice to expose bugs; this flag discards the first run
+    let cancelled = false
+    void loadLinks(saved).then((result) => {
+      if (cancelled) return
+      setLinks(result.links)
+      saveLinks(result.links)
+      setState(result.state)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function setSleeperUsername(username: string) {
+    void load({ ...links, sleeperUsername: username })
+  }
+
+  function addEspnLeague(leagueId: string, teamId: string) {
+    const others = links.espnLeagues.filter((link) => link.leagueId !== leagueId)
+    void load({ ...links, espnLeagues: [...others, { leagueId, teamId }] })
+  }
+
+  function removeSleeper() {
+    void load({ ...links, sleeperUsername: null })
+  }
+
+  function removeEspnLeague(leagueId: string) {
+    const remaining = links.espnLeagues.filter((link) => link.leagueId !== leagueId)
+    void load({ ...links, espnLeagues: remaining })
+  }
+
+  // The team picker needs a league's teams before anything is linked
+  async function findEspnLeague(leagueId: string): Promise<EspnLeagueChoice | null> {
+    const now = await nfl.getCurrentWeek()
+    return espn.findLeague(leagueId, now.season)
+  }
+
+  // Shows a different week for the leagues already loaded. Only the per-league data is refetched.
   async function changeWeek(week: number) {
     if (state.status !== 'loaded') return
     const loaded = state
@@ -100,12 +191,21 @@ export function useLeagues() {
         ...loaded,
         week,
         changingWeek: false,
-        ...(await loadWeek(leagues, loaded.user.id, loaded.season, week)),
+        ...(await loadWeek(leagues, loaded.season, week)),
       })
     } catch (error) {
       setState(errorState(error))
     }
   }
 
-  return { state, load, changeWeek }
+  return {
+    state,
+    links,
+    setSleeperUsername,
+    addEspnLeague,
+    removeSleeper,
+    removeEspnLeague,
+    findEspnLeague,
+    changeWeek,
+  }
 }

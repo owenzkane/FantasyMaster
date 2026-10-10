@@ -1,9 +1,12 @@
 import { useState } from 'react'
+import EspnLeagueForm from './components/EspnLeagueForm.tsx'
 import LeagueList from './components/LeagueList.tsx'
+import LinkedAccounts from './components/LinkedAccounts.tsx'
 import PlayersTable from './components/PlayersTable.tsx'
 import UsernameForm from './components/UsernameForm.tsx'
 import WinScenarios from './components/WinScenarios.tsx'
 import WeekPicker from './components/WeekPicker.tsx'
+import { hasLinks } from './hooks/links.ts'
 import { useLeagues } from './hooks/useLeagues.ts'
 import { usingMock } from './platforms/index.ts'
 import { combinePlayers } from './players/combinePlayers.ts'
@@ -15,7 +18,16 @@ type View = 'leagues' | 'players' | 'scenarios'
 const LAST_WEEK = 18
 
 function App() {
-  const { state, load, changeWeek } = useLeagues()
+  const {
+    state,
+    links,
+    setSleeperUsername,
+    addEspnLeague,
+    removeSleeper,
+    removeEspnLeague,
+    findEspnLeague,
+    changeWeek,
+  } = useLeagues()
   const [view, setView] = useState<View>('leagues')
   const busy = state.status === 'loading' || (state.status === 'loaded' && state.changingWeek)
 
@@ -24,19 +36,25 @@ function App() {
       <h1>FantasyMaster</h1>
       {usingMock && (
         <p className="mock-note">
-          Mock data is on. Use the username <code>demo_user</code>.
+          Mock data is on. Use the Sleeper username <code>demo_user</code> and the ESPN league
+          ID <code>1000000001</code>.
         </p>
       )}
 
-      <UsernameForm disabled={busy} onSubmit={load} />
+      <UsernameForm disabled={busy} onSubmit={setSleeperUsername} />
+      <EspnLeagueForm disabled={busy} findLeague={findEspnLeague} onAdd={addEspnLeague} />
+
+      {hasLinks(links) && (
+        <LinkedAccounts
+          links={links}
+          leagues={state.status === 'loaded' ? state.leagues : []}
+          disabled={busy}
+          onRemoveSleeper={removeSleeper}
+          onRemoveEspnLeague={removeEspnLeague}
+        />
+      )}
 
       {state.status === 'loading' && <p className="status">Loading leagues…</p>}
-
-      {state.status === 'notFound' && (
-        <p className="status" role="alert">
-          No Sleeper user named “{state.username}”.
-        </p>
-      )}
 
       {state.status === 'error' && (
         <p className="status" role="alert">
@@ -48,8 +66,8 @@ function App() {
         <section>
           <div className="results-header">
             <h2>
-              {state.user.displayName} · {state.season}
-              {usingMock && ` week ${state.week}`}
+              {state.season} season
+              {usingMock && ` · week ${state.week}`}
             </h2>
             {/* The mock always shows its one saved week, so it gets no picker */}
             {!usingMock && state.leagues.length > 0 && (
@@ -62,6 +80,11 @@ function App() {
               />
             )}
           </div>
+          {state.warnings.map((warning) => (
+            <p key={warning} className="status" role="alert">
+              {warning}
+            </p>
+          ))}
           {state.leagues.length === 0 ? (
             <p className="status">No leagues found for the {state.season} season.</p>
           ) : (

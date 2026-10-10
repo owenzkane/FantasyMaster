@@ -1,6 +1,6 @@
 // Our own data shapes. The UI only ever sees these, never a platform's raw JSON.
 
-export type PlatformId = 'sleeper'
+export type PlatformId = 'sleeper' | 'espn'
 
 export interface User {
   id: string
@@ -18,8 +18,12 @@ export interface League {
   name: string
   season: string
   teamCount: number
-  // points per stat, keyed by Sleeper's stat names, e.g. { rec: 0.5, rec_yd: 0.1, rec_td: 6 }
-  scoring: Record<string, number>
+  // Which team is mine. Sleeper: my user ID (teams are found by owner). ESPN: my team's ID.
+  myTeamId: string
+  pointsPerReception: number
+  // points per stat, keyed by Sleeper's stat names, e.g. { rec: 0.5, rec_yd: 0.1, rec_td: 6 }.
+  // null when the platform's rules haven't been translated to those names yet (ESPN).
+  scoring: Record<string, number> | null
 }
 
 export interface Opponent {
@@ -61,6 +65,8 @@ export interface PlayerInfo {
   name: string
   position: string | null
   team: string | null
+  // the same player's ID on ESPN, when Sleeper knows it
+  espnId?: number
 }
 
 // Player details by player ID. An ID can be missing if the saved list is out of date.
@@ -72,13 +78,39 @@ export type StatLine = Record<string, number>
 // Every player's stat line for one week, by player ID. Players who didn't play are missing.
 export type WeekStats = Record<string, StatLine>
 
-// The contract every platform (Sleeper now, maybe ESPN or Yahoo later) must fulfil.
+// The one thing every fantasy platform must be able to do: describe a league's week.
 export interface FantasyPlatform {
-  // null when no user has that username
-  getUser(username: string): Promise<User | null>
+  getLeagueWeek(league: League, week: number): Promise<LeagueWeek>
+}
+
+// Facts about the NFL itself, the same whatever platform a league is on.
+export interface NflSource {
   getCurrentWeek(): Promise<SeasonWeek>
-  getLeagues(userId: string, season: string): Promise<League[]>
-  getLeagueWeek(leagueId: string, userId: string, week: number): Promise<LeagueWeek>
   getPlayerDirectory(): Promise<PlayerDirectory>
   getWeekStats(season: string, week: number): Promise<WeekStats>
+}
+
+// Sleeper links by username: one username leads to all of that user's leagues.
+export interface SleeperSource extends FantasyPlatform, NflSource {
+  // null when no user has that username
+  getUser(username: string): Promise<User | null>
+  getLeagues(userId: string, season: string): Promise<League[]>
+}
+
+export interface TeamChoice {
+  id: string
+  name: string
+  ownerName: string | null
+}
+
+// An ESPN league before we know which team is mine
+export interface EspnLeagueChoice {
+  league: Omit<League, 'myTeamId'>
+  teams: TeamChoice[]
+}
+
+// ESPN has no lookup by username: leagues are linked one at a time by ID, then a team is picked.
+export interface EspnSource extends FantasyPlatform {
+  // null when the league doesn't exist or isn't public
+  findLeague(leagueId: string, season: string): Promise<EspnLeagueChoice | null>
 }

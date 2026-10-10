@@ -10,7 +10,7 @@ function UsernameForm({ disabled, onSubmit }: Props) {
 
   return (
     <form
-      className="username-form"
+      className="link-form"
       onSubmit={(event) => {
         // Stop the browser's default behaviour of reloading the page on submit
         event.preventDefault()
@@ -19,7 +19,7 @@ function UsernameForm({ disabled, onSubmit }: Props) {
       }}
     >
       <label htmlFor="username">Sleeper username</label>
-      <div className="username-form-row">
+      <div className="link-form-row">
         <input
           id="username"
           value={username}
@@ -29,7 +29,7 @@ function UsernameForm({ disabled, onSubmit }: Props) {
           spellCheck={false}
         />
         <button type="submit" disabled={disabled}>
-          {disabled ? 'Loading…' : 'Show leagues'}
+          Show leagues
         </button>
       </div>
     </form>
