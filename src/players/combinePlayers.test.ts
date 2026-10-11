@@ -1,15 +1,16 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import type { League } from '../platforms/types.ts'
 import { loadDemo } from '../testing/demo.ts'
-import { combinePlayers } from './combinePlayers.ts'
+import { combinePlayers, startingCount } from './combinePlayers.ts'
 
 const league = (id: string) => ({ id, name: `League ${id}` }) as League
-const player = (playerId: string, points: number | null, projected: number | null = null) => ({
-  playerId,
-  points,
-  projected,
-  isStarter: true,
-})
+const player = (
+  playerId: string,
+  points: number | null,
+  projected: number | null = null,
+  isStarter = true,
+) => ({ playerId, points, projected, isStarter })
+const bench = (playerId: string, points: number | null) => player(playerId, points, null, false)
 
 describe('combinePlayers', () => {
   it('turns each league’s players into each player’s leagues', () => {
@@ -21,23 +22,47 @@ describe('combinePlayers', () => {
       {
         playerId: 'x',
         leagues: [
-          { leagueId: 'A', leagueName: 'League A', points: 10, projected: 9.5 },
-          { leagueId: 'B', leagueName: 'League B', points: 12, projected: null },
+          { leagueId: 'A', leagueName: 'League A', points: 10, projected: 9.5, isStarter: true },
+          { leagueId: 'B', leagueName: 'League B', points: 12, projected: null, isStarter: true },
         ],
       },
       {
         playerId: 'y',
-        leagues: [{ leagueId: 'A', leagueName: 'League A', points: 5, projected: null }],
+        leagues: [
+          { leagueId: 'A', leagueName: 'League A', points: 5, projected: null, isStarter: true },
+        ],
       },
     ])
   })
 
-  it('sorts by number of leagues, then by points', () => {
+  it('puts players started in the most leagues first', () => {
     const combined = combinePlayers([
-      { league: league('A'), myPlayers: [player('low', 1), player('high', 30), player('both', 2)] },
-      { league: league('B'), myPlayers: [player('both', null)] },
+      { league: league('A'), myPlayers: [player('one', 1), player('two', 2)] },
+      { league: league('B'), myPlayers: [player('two', 2)] },
     ])
-    expect(combined.map((entry) => entry.playerId)).toEqual(['both', 'high', 'low'])
+    expect(combined.map((entry) => entry.playerId)).toEqual(['two', 'one'])
+  })
+
+  it('ranks a player I bench everywhere below one I start once, however many leagues he’s in', () => {
+    const combined = combinePlayers([
+      { league: league('A'), myPlayers: [bench('held', 20), player('started', 1)] },
+      { league: league('B'), myPlayers: [bench('held', 20)] },
+      { league: league('C'), myPlayers: [bench('held', 20)] },
+    ])
+    expect(combined.map((entry) => entry.playerId)).toEqual(['started', 'held'])
+    expect(combined.map(startingCount)).toEqual([1, 0])
+  })
+
+  it('breaks ties on leagues started by leagues held, then by points', () => {
+    const combined = combinePlayers([
+      {
+        league: league('A'),
+        myPlayers: [player('low', 1), player('high', 30), player('wide', 2), player('none', 50, null, false)],
+      },
+      { league: league('B'), myPlayers: [bench('wide', 2)] },
+    ])
+    // all but "none" are started once; "wide" is held in two leagues; then 30 points beats 1
+    expect(combined.map((entry) => entry.playerId)).toEqual(['wide', 'high', 'low', 'none'])
   })
 
   it('returns nothing for no leagues', () => {
@@ -65,6 +90,13 @@ describe('combinePlayers on the fixtures', () => {
       ['Demo League 5', 25.8],
       ['Demo League 6', 25.8],
     ])
+  })
+
+  it('lists every started player before any benched everywhere', () => {
+    const counts = combinePlayers(demo.sleeper).map(startingCount)
+    expect(counts).toEqual([...counts].sort((a, b) => b - a))
+    expect(counts[0]).toBeGreaterThan(1)
+    expect(counts.at(-1)).toBe(0)
   })
 
   it('counts a player on both platforms as one player', () => {

@@ -71,6 +71,19 @@ describe('crossLeagueStats', () => {
     expect(stats.sharedManagers[0].name).toBe('Pat Smith')
   })
 
+  it('orders players by leagues held, even when I start a less-held player more', () => {
+    const player = (playerId: string, isStarter: boolean) => ({ playerId, points: 1, projected: null, isStarter })
+    const stats = crossLeagueStats([
+      { league: league('A'), season: null, members: [], myPlayers: [player('held', false), player('used', true)] },
+      { league: league('B'), season: null, members: [], myPlayers: [player('held', false), player('used', true)] },
+      { league: league('C'), season: null, members: [], myPlayers: [player('held', false)] },
+    ])
+    expect(stats.sharedPlayers).toEqual([
+      { playerId: 'held', leagueCount: 3 },
+      { playerId: 'used', leagueCount: 2 },
+    ])
+  })
+
   it('lists players I roster in two or more leagues', () => {
     const player = (playerId: string) => ({ playerId, points: 1, projected: null, isStarter: true })
     const stats = crossLeagueStats([

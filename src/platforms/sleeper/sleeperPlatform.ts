@@ -20,7 +20,7 @@ import {
   fetchRosters,
   fetchState,
   fetchUser,
-  fetchWeekProjections,
+  fetchWeekOutlook,
   fetchWeekStats,
 } from './sleeperApi.ts'
 import type {
@@ -190,14 +190,14 @@ export const sleeperPlatform: SleeperSource = {
 
   async getLeagueWeek(league, week, games) {
     // The calls don't depend on each other, so run them at the same time
-    const [rosters, users, matchups, projections, directory] = await Promise.all([
+    const [rosters, users, matchups, outlook, directory] = await Promise.all([
       fetchRosters(league.id),
       fetchLeagueUsers(league.id),
       fetchMatchups(league.id, week),
-      fetchWeekProjections(league.season, week),
+      fetchWeekOutlook(league.season, week),
       fetchPlayerDirectory(),
     ])
-    const project = projector(projections, league.scoring)
+    const project = projector(outlook.projections, league.scoring)
     const live = games && { games, directory }
     return toLeagueWeek(league.id, week, league.myTeamId, rosters, users, matchups, project, live)
   },
@@ -212,5 +212,10 @@ export const sleeperPlatform: SleeperSource = {
 
   getLiveGames(_season, week) {
     return fetchLiveGames(week)
+  },
+
+  // Comes from the same download as the week's projections, so it costs no extra request
+  async getInjuryStatuses(season, week) {
+    return (await fetchWeekOutlook(season, week)).injuries
   },
 }

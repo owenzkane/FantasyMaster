@@ -581,3 +581,25 @@ summary.league-card-row:focus-visible {
 .view-switch {
   flex-wrap: wrap;
 }
+
+/* Injury tags and bench notes in the players table */
+
+.injury {
+  margin-left: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.injury-out {
+  color: var(--alert);
+}
+
+.injury-doubt {
+  color: var(--warn);
+}
+
+.bench-note {
+  font-size: 0.75rem;
+  color: var(--text);
+}

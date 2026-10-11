@@ -13,7 +13,7 @@ import type {
   SleeperState,
   SleeperUser,
 } from '../sleeper/sleeperTypes.ts'
-import type { EspnSource, SleeperSource, WeekStats } from '../types.ts'
+import type { EspnSource, InjuryStatuses, SleeperSource, WeekStats } from '../types.ts'
 
 // Week 4 is the finished week in the fixtures; week 5 was saved before any games
 const MOCK_WEEK = 4
@@ -67,6 +67,10 @@ export const mockSleeper: SleeperSource = {
   // projection stays as it was before the week.
   async getLiveGames() {
     return {}
+  },
+
+  async getInjuryStatuses() {
+    return fixture<InjuryStatuses>('injuries') ?? {}
   },
 }
 

@@ -86,8 +86,10 @@ export function crossLeagueStats(leagues: LeagueData[]): CrossLeagueStats {
     sharedManagers: [...managers.values()]
       .filter((manager) => manager.leagues.length > 1)
       .sort((a, b) => b.leagues.length - a.leagues.length),
+    // combinePlayers orders by who I'm starting; this list is about who I hold the most
     sharedPlayers: combinePlayers(leagues)
       .filter((player) => player.leagues.length > 1)
-      .map((player) => ({ playerId: player.playerId, leagueCount: player.leagues.length })),
+      .map((player) => ({ playerId: player.playerId, leagueCount: player.leagues.length }))
+      .sort((a, b) => b.leagueCount - a.leagueCount),
   }
 }

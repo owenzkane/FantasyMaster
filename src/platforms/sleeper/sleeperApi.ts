@@ -1,10 +1,11 @@
 // Raw calls to Sleeper, one function per endpoint. No conversion happens here.
 
-import type { PlayerDirectory, WeekStats } from '../types.ts'
+import type { InjuryStatuses, PlayerDirectory, WeekStats } from '../types.ts'
 import type {
   SleeperLeague,
   SleeperLeagueUser,
   SleeperMatchup,
+  SleeperProjection,
   SleeperRoster,
   SleeperState,
   SleeperUser,
@@ -50,21 +51,46 @@ export function fetchWeekStats(season: string, week: number) {
   return getJson<WeekStats>(`/stats/nfl/regular/${season}/${week}`)
 }
 
-// Undocumented, like the stats endpoint, and the same shape: each player's projected stat line.
-// Every Sleeper league asks for the same week, so the download is shared between them.
-const projections = new Map<string, Promise<WeekStats>>()
+// One week's projections for every player, with each player's current injury status attached.
+// Undocumented, and on a different address from the rest of Sleeper's API.
+const PROJECTIONS_URL = 'https://api.sleeper.com/projections/nfl'
 
-export function fetchWeekProjections(season: string, week: number) {
+export interface WeekOutlook {
+  // each player's projected stat line, in the same shape as real stats
+  projections: WeekStats
+  injuries: InjuryStatuses
+}
+
+// Pulls the two things we use out of Sleeper's list
+export function toWeekOutlook(entries: SleeperProjection[]): WeekOutlook {
+  const outlook: WeekOutlook = { projections: {}, injuries: {} }
+  for (const entry of entries) {
+    outlook.projections[entry.player_id] = entry.stats
+    const status = entry.player?.injury_status
+    if (status) outlook.injuries[entry.player_id] = status
+  }
+  return outlook
+}
+
+// Every Sleeper league asks for the same week, so the download is shared between them
+const outlooks = new Map<string, Promise<WeekOutlook>>()
+
+export function fetchWeekOutlook(season: string, week: number) {
   const key = `${season}-${week}`
-  let request = projections.get(key)
+  let request = outlooks.get(key)
   if (!request) {
-    request = getJson<WeekStats>(`/projections/nfl/regular/${season}/${week}`).catch(() => {
-      // Projections are a nice-to-have: without them the page still works. Forget the failure
-      // so a later load tries again.
-      projections.delete(key)
-      return {}
-    })
-    projections.set(key, request)
+    request = fetch(`${PROJECTIONS_URL}/${season}/${week}?season_type=regular`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Sleeper projections failed (${response.status})`)
+        return toWeekOutlook((await response.json()) as SleeperProjection[])
+      })
+      .catch((): WeekOutlook => {
+        // Projections and injuries are extras: without them the page still works. Forget the
+        // failure so a later load tries again.
+        outlooks.delete(key)
+        return { projections: {}, injuries: {} }
+      })
+    outlooks.set(key, request)
   }
   return request
 }

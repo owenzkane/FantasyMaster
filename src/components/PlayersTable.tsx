@@ -1,12 +1,15 @@
-import type { PlayerDirectory } from '../platforms/types.ts'
+import type { InjuryStatuses, PlayerDirectory } from '../platforms/types.ts'
+import { startingCount } from '../players/combinePlayers.ts'
 import type { MyPlayer } from '../players/combinePlayers.ts'
+import { injuryTag } from '../players/injury.ts'
 
 interface Props {
   players: MyPlayer[]
   directory: PlayerDirectory
+  injuries: InjuryStatuses
 }
 
-function PlayersTable({ players, directory }: Props) {
+function PlayersTable({ players, directory, injuries }: Props) {
   return (
     <div className="players-table-wrap">
       <table className="players-table">
@@ -23,22 +26,32 @@ function PlayersTable({ players, directory }: Props) {
           {players.map((player) => {
             // Missing when the saved player list is older than the player
             const info = directory[player.playerId]
+            const injury = injuryTag(injuries[player.playerId])
             return (
               <tr key={player.playerId}>
                 <th scope="row">
                   {info ? info.name : `Unknown player (${player.playerId})`}
+                  {injury && (
+                    <span className={`injury injury-${injury.severity}`}>{injury.label}</span>
+                  )}
                   {info && (
                     <span className="player-meta">
                       {[info.position, info.team ?? 'Free agent'].filter(Boolean).join(' · ')}
                     </span>
                   )}
                 </th>
-                <td className="number">{player.leagues.length}</td>
+                <td className="number">
+                  {player.leagues.length}
+                  <span className="player-meta">starting {startingCount(player)}</span>
+                </td>
                 <td>
                   <ul className="player-leagues">
                     {player.leagues.map((entry) => (
                       <li key={entry.leagueId}>
-                        <span>{entry.leagueName}</span>
+                        <span>
+                          {entry.leagueName}
+                          {!entry.isStarter && <span className="bench-note"> (bench)</span>}
+                        </span>
                         <span className="number">
                           {entry.points === null ? '—' : entry.points.toFixed(2)}
                           {entry.projected !== null && (

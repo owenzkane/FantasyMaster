@@ -44,6 +44,15 @@ export interface SleeperLeagueUser {
   metadata: { team_name?: string } | null
 }
 
+// GET api.sleeper.com/projections/nfl/{season}/{week} returns SleeperProjection[]
+export interface SleeperProjection {
+  player_id: string
+  // his projected stat line, with the same stat names as real stats
+  stats: Record<string, number>
+  // his details as of today, whichever week was asked for
+  player?: { injury_status?: string | null }
+}
+
 // GET /league/{league_id}/matchups/{week} returns SleeperMatchup[], one entry per team
 export interface SleeperMatchup {
   roster_id: number

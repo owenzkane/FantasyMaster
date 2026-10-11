@@ -126,6 +126,10 @@ export interface GameStatus {
 // A team that isn't listed has no game: it's on a bye, or the data wasn't available.
 export type LiveGames = Record<string, GameStatus>
 
+// Each player's injury designation as of today, by player ID, in Sleeper's wording:
+// "IR", "Out", "Doubtful", "Questionable", "PUP", "Sus". Healthy players are missing.
+export type InjuryStatuses = Record<string, string>
+
 // The one thing every fantasy platform must be able to do: describe a league's week.
 // `games` is only given for the week in progress. A platform that doesn't know a team's live
 // projection itself uses it to work one out.
@@ -139,6 +143,7 @@ export interface NflSource {
   getPlayerDirectory(): Promise<PlayerDirectory>
   getWeekStats(season: string, week: number): Promise<WeekStats>
   getLiveGames(season: string, week: number): Promise<LiveGames>
+  getInjuryStatuses(season: string, week: number): Promise<InjuryStatuses>
 }
 
 // Sleeper links by username: one username leads to all of that user's leagues.

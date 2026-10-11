@@ -145,7 +145,11 @@ function App() {
                   directory={state.players}
                 />
               ) : (
-                <PlayersTable players={combinePlayers(state.leagues)} directory={state.players} />
+                <PlayersTable
+                  players={combinePlayers(state.leagues)}
+                  directory={state.players}
+                  injuries={state.injuries}
+                />
               )}
             </div>
           )}

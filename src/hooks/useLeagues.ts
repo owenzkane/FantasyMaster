@@ -5,6 +5,7 @@ import { describeEspnProblem } from '../platforms/espn/espnProblems.ts'
 import { espn, nfl, platformFor, sleeper } from '../platforms/index.ts'
 import type {
   EspnFindResult,
+  InjuryStatuses,
   League,
   LeagueMember,
   LiveGames,
@@ -45,6 +46,8 @@ export type LeaguesState =
       leagues: LeagueSummary[]
       // every player's real stat line for the week shown; empty if it couldn't be loaded
       stats: WeekStats
+      // each player's injury designation as of today; empty if it couldn't be loaded
+      injuries: InjuryStatuses
       players: PlayerDirectory
       // things that went wrong without stopping the load, e.g. an ESPN league that turned private
       warnings: string[]
@@ -60,14 +63,16 @@ async function loadWeek(leagues: League[], season: string, week: number, current
   // The scoreboard only refines the projections, so a failure here shouldn't block the page.
   const games =
     week === currentWeek ? await nfl.getLiveGames(season, week).catch((): LiveGames => ({})) : undefined
-  const [weeks, stats] = await Promise.all([
+  const [weeks, injuries, stats] = await Promise.all([
     Promise.all(leagues.map((league) => platformFor(league).getLeagueWeek(league, week, games))),
+    nfl.getInjuryStatuses(season, week).catch((): InjuryStatuses => ({})),
     // Stats only feed the what-if calculator, so a failure here shouldn't block the page
     nfl.getWeekStats(season, week).catch((): WeekStats => ({})),
   ])
   return {
     leagues: leagues.map((league, i): LeagueSummary => ({ league, ...weeks[i] })),
     stats,
+    injuries,
   }
 }
 
