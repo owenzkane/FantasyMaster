@@ -50,7 +50,14 @@ describe('Sleeper leagues from the fixtures (week 4)', () => {
     const undrafted = demo.league('Demo League 8 (not drafted)')
     expect(undrafted.matchup).toBeNull()
     expect(undrafted.myPlayers).toEqual([])
-    expect(undrafted.season).toEqual({ wins: 0, losses: 0, ties: 0, pointsFor: 0 })
+    expect(undrafted.season).toEqual({
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      pointsFor: 0,
+      gamesBehind: 0,
+      leaguePointsPerGame: null,
+    })
   })
 
   it('lists starters whose points add up to each team’s total', () => {
@@ -100,7 +107,7 @@ describe('Sleeper leagues from the fixtures (week 4)', () => {
 
   it('reads the season record, joining the two halves of Sleeper’s points', () => {
     // fpts 488 and fpts_decimal 10 in the fixture
-    expect(demo.league('Demo League 1').season).toEqual({
+    expect(demo.league('Demo League 1').season).toMatchObject({
       wins: 0,
       losses: 4,
       ties: 0,

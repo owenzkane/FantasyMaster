@@ -18,6 +18,16 @@ function pointsText(points: number | null) {
   return points === null ? '—' : points.toFixed(2)
 }
 
+function percentText(fraction: number | null) {
+  return fraction === null ? '—' : `${(fraction * 100).toFixed(1)}%`
+}
+
+// First place shows as a dash, the way standings tables do
+function gamesBehindText(record: SeasonRecord) {
+  if (record.wins + record.losses + record.ties === 0 || record.gamesBehind === 0) return '—'
+  return String(record.gamesBehind)
+}
+
 function StatsView({ leagues, directory }: Props) {
   const stats = crossLeagueStats(leagues)
   const platforms = new Set(leagues.map(({ league }) => league.platform))
@@ -34,16 +44,28 @@ function StatsView({ leagues, directory }: Props) {
                 Record
               </th>
               <th scope="col" className="number">
+                Win %
+              </th>
+              <th scope="col" className="number">
+                Games behind
+              </th>
+              <th scope="col" className="number">
                 Points per game
+              </th>
+              <th scope="col" className="number">
+                League average
               </th>
             </tr>
           </thead>
           <tbody>
-            {stats.records.map(({ league, record, pointsPerGame }) => (
+            {stats.records.map(({ league, record, winPct, pointsPerGame }) => (
               <tr key={`${league.platform}-${league.id}`}>
                 <th scope="row">{league.name}</th>
                 <td className="number">{recordText(record)}</td>
+                <td className="number">{percentText(winPct)}</td>
+                <td className="number">{gamesBehindText(record)}</td>
                 <td className="number">{pointsText(pointsPerGame)}</td>
+                <td className="number">{pointsText(record.leaguePointsPerGame)}</td>
               </tr>
             ))}
           </tbody>
@@ -51,13 +73,18 @@ function StatsView({ leagues, directory }: Props) {
             <tr>
               <th scope="row">All leagues</th>
               <td className="number">{recordText(stats.total)}</td>
+              <td className="number">{percentText(stats.total.winPct)}</td>
+              <td className="number">—</td>
               <td className="number">{pointsText(stats.total.pointsPerGame)}</td>
+              <td className="number">{pointsText(stats.total.leaguePointsPerGame)}</td>
             </tr>
           </tfoot>
         </table>
       </div>
       <p className="scenario-note">
         Records and points are for the season to date and don’t change with the week picker.
+        “Games behind” is how far you are from the best record in that league; a dash means
+        first place. “League average” is what teams in that league score per game.
       </p>
 
       <h3>Managers you share the most leagues with</h3>

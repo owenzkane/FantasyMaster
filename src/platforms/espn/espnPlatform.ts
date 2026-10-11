@@ -1,6 +1,7 @@
 // ESPN's implementation of FantasyPlatform: fetch raw JSON, convert it to our types.
 
 import { projectedTotal, round2 } from '../scoring.ts'
+import { gamesBehind, leaguePointsPerGame } from '../standings.ts'
 import { fetchPlayerDirectory } from '../sleeper/sleeperApi.ts'
 import type {
   EspnLeagueChoice,
@@ -106,12 +107,17 @@ export function toEspnLeagueWeek(
   const myTeamId = Number(league.myTeamId)
   const myTeam = response.teams?.find((team) => team.id === myTeamId)
   const record = myTeam?.record?.overall
+  const everyone = (response.teams ?? []).flatMap((team) =>
+    team.record ? [team.record.overall] : [],
+  )
   const season = record
     ? {
         wins: record.wins,
         losses: record.losses,
         ties: record.ties,
         pointsFor: round2(record.pointsFor),
+        gamesBehind: gamesBehind(record, everyone),
+        leaguePointsPerGame: leaguePointsPerGame(everyone),
       }
     : null
   const members = (response.members ?? []).map((member) => ({

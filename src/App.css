@@ -325,6 +325,13 @@ summary.league-card-row:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+/* A figure like "16–12" must stay on one line; a browser may otherwise break it at the dash.
+   Column headings are left free to wrap, so the columns stay as narrow as their numbers. */
+.players-table tbody .number,
+.players-table tfoot .number {
+  white-space: nowrap;
+}
+
 .player-meta {
   display: block;
   font-size: 0.75rem;

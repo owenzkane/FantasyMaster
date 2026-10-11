@@ -15,8 +15,22 @@ export interface LeagueRecord {
   league: League
   record: SeasonRecord
   games: number
+  // a tie counts as half a win; null before any game has been played
+  winPct: number | null
   // null before any game has been played
   pointsPerGame: number | null
+}
+
+export interface Totals {
+  wins: number
+  losses: number
+  ties: number
+  games: number
+  winPct: number | null
+  pointsPerGame: number | null
+  // what my leagues average per game, each league counted by the games I've played in it,
+  // so it's directly comparable with my own pointsPerGame
+  leaguePointsPerGame: number | null
 }
 
 export interface SharedManager {
@@ -34,7 +48,7 @@ export interface SharedPlayer {
 
 export interface CrossLeagueStats {
   records: LeagueRecord[]
-  total: { wins: number; losses: number; ties: number; games: number; pointsPerGame: number | null }
+  total: Totals
   // other managers in two or more of my leagues, most leagues first
   sharedManagers: SharedManager[]
   // players I roster in two or more leagues, most leagues first
@@ -45,13 +59,24 @@ function perGame(points: number, games: number) {
   return games > 0 ? points / games : null
 }
 
+function winPct(record: { wins: number; ties: number }, games: number) {
+  return games > 0 ? (record.wins + record.ties / 2) / games : null
+}
+
 export function crossLeagueStats(leagues: LeagueData[]): CrossLeagueStats {
   const records: LeagueRecord[] = []
-  const total = { wins: 0, losses: 0, ties: 0, games: 0, points: 0 }
+  const total = { wins: 0, losses: 0, ties: 0, games: 0, points: 0, leaguePoints: 0 }
   for (const { league, season } of leagues) {
     if (!season) continue
     const games = season.wins + season.losses + season.ties
-    records.push({ league, record: season, games, pointsPerGame: perGame(season.pointsFor, games) })
+    records.push({
+      league,
+      record: season,
+      games,
+      winPct: winPct(season, games),
+      pointsPerGame: perGame(season.pointsFor, games),
+    })
+    total.leaguePoints += (season.leaguePointsPerGame ?? 0) * games
     total.wins += season.wins
     total.losses += season.losses
     total.ties += season.ties
@@ -80,8 +105,10 @@ export function crossLeagueStats(leagues: LeagueData[]): CrossLeagueStats {
       losses: total.losses,
       ties: total.ties,
       games: total.games,
+      winPct: winPct(total, total.games),
       // total points over total games, so a league with more games played counts for more
       pointsPerGame: perGame(total.points, total.games),
+      leaguePointsPerGame: perGame(total.leaguePoints, total.games),
     },
     sharedManagers: [...managers.values()]
       .filter((manager) => manager.leagues.length > 1)

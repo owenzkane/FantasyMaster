@@ -99,7 +99,7 @@ describe('the ESPN league from the fixtures (week 4)', () => {
   })
 
   it('reads my season record and marks which member is me', () => {
-    expect(demo.espn.season).toEqual({ wins: 2, losses: 2, ties: 0, pointsFor: 515.12 })
+    expect(demo.espn.season).toMatchObject({ wins: 2, losses: 2, ties: 0, pointsFor: 515.12 })
     const me = demo.espn.members.filter((member) => member.isMe)
     expect(me).toHaveLength(1)
     expect(me[0]).toMatchObject({ realName: 'Demo Manager 5', teamName: 'ESPN Team 1' })

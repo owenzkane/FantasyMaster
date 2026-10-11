@@ -69,6 +69,10 @@ export interface SeasonRecord {
   losses: number
   ties: number
   pointsFor: number
+  // how far behind the league's best record I am; 0 means first place, possibly shared
+  gamesBehind: number
+  // what the whole league averages per team per game; null before any game is played
+  leaguePointsPerGame: number | null
 }
 
 export interface LeagueMember {

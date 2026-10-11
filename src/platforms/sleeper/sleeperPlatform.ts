@@ -3,6 +3,7 @@
 import { liveProjectedTotal } from '../liveProjection.ts'
 import { fetchLiveGames } from '../nfl/scoreboard.ts'
 import { pointsFor, projectedTotal, round2 } from '../scoring.ts'
+import { gamesBehind, leaguePointsPerGame } from '../standings.ts'
 import type {
   League,
   LeagueWeek,
@@ -110,8 +111,20 @@ export function toLeagueWeek(
     return { matchup: null, myPlayers: [], opponentPlayers: [], season: null, members }
   }
 
-  const { wins, losses, ties, fpts, fpts_decimal } = myRoster.settings
-  const season = { wins, losses, ties, pointsFor: fpts + (fpts_decimal ?? 0) / 100 }
+  // Sleeper splits points in two: fpts is the whole part, fpts_decimal the hundredths
+  const recordOf = ({ settings }: SleeperRoster) => ({
+    wins: settings.wins,
+    losses: settings.losses,
+    ties: settings.ties,
+    pointsFor: settings.fpts + (settings.fpts_decimal ?? 0) / 100,
+  })
+  const everyone = rosters.map(recordOf)
+  const mineSoFar = recordOf(myRoster)
+  const season = {
+    ...mineSoFar,
+    gamesBehind: gamesBehind(mineSoFar, everyone),
+    leaguePointsPerGame: leaguePointsPerGame(everyone),
+  }
 
   const mine = matchups.find((entry) => entry.roster_id === myRoster.roster_id)
   if (!mine) {

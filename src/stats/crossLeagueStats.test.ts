@@ -12,7 +12,14 @@ const member = (id: string, extra: Partial<LeagueMember> = {}): LeagueMember => 
   isMe: false,
   ...extra,
 })
-const record = (wins: number, losses: number, pointsFor: number) => ({ wins, losses, ties: 0, pointsFor })
+const record = (wins: number, losses: number, pointsFor: number, leaguePointsPerGame: number | null = null) => ({
+  wins,
+  losses,
+  ties: 0,
+  pointsFor,
+  gamesBehind: 0,
+  leaguePointsPerGame,
+})
 
 describe('crossLeagueStats', () => {
   it('works out points per game for each league', () => {
@@ -28,7 +35,27 @@ describe('crossLeagueStats', () => {
       { league: league('B'), season: record(2, 1, 360), members: [], myPlayers: [] },
     ])
     // (100 + 360) / 4 games = 115. Averaging the two league averages (100 and 120) would give 110.
-    expect(stats.total).toEqual({ wins: 3, losses: 1, ties: 0, games: 4, pointsPerGame: 115 })
+    expect(stats.total).toMatchObject({ wins: 3, losses: 1, ties: 0, games: 4, pointsPerGame: 115 })
+  })
+
+  it('works out win percentage, counting a tie as half a win', () => {
+    const tied = { ...record(2, 1, 400), ties: 1 }
+    const stats = crossLeagueStats([
+      { league: league('A'), season: record(3, 1, 480), members: [], myPlayers: [] },
+      { league: league('B'), season: tied, members: [], myPlayers: [] },
+    ])
+    expect(stats.records.map((row) => row.winPct)).toEqual([0.75, 0.625])
+    // 5 wins and a tie in 8 games
+    expect(stats.total.winPct).toBe(0.6875)
+  })
+
+  it('averages the leagues’ scoring by the games I’ve played in each', () => {
+    const stats = crossLeagueStats([
+      { league: league('A'), season: record(1, 0, 100, 90), members: [], myPlayers: [] },
+      { league: league('B'), season: record(2, 1, 360, 130), members: [], myPlayers: [] },
+    ])
+    // (90 × 1 game + 130 × 3 games) / 4 games. A plain average of 90 and 130 would give 110.
+    expect(stats.total.leaguePointsPerGame).toBe(120)
   })
 
   it('shows no points per game before any game is played', () => {
@@ -36,7 +63,10 @@ describe('crossLeagueStats', () => {
       { league: league('A'), season: record(0, 0, 0), members: [], myPlayers: [] },
     ])
     expect(stats.records[0].pointsPerGame).toBeNull()
+    expect(stats.records[0].winPct).toBeNull()
     expect(stats.total.pointsPerGame).toBeNull()
+    expect(stats.total.winPct).toBeNull()
+    expect(stats.total.leaguePointsPerGame).toBeNull()
   })
 
   it('skips leagues where I have no team', () => {
@@ -117,6 +147,31 @@ describe('crossLeagueStats on the fixtures', () => {
       ['Demo League 8 (not drafted)', '0-0', null],
       ['Demo ESPN League', '2-2', 128.78],
     ])
+  })
+
+  it('gives each league’s win percentage, games behind first and league scoring average', () => {
+    const rows = stats.records.map(({ league, record, winPct }) => [
+      league.name,
+      winPct,
+      record.gamesBehind,
+      record.leaguePointsPerGame === null ? null : Number(record.leaguePointsPerGame.toFixed(2)),
+    ])
+    expect(rows).toEqual([
+      ['Demo League 1', 0, 3, 134.38],
+      ['Demo League 2', 0.5, 2, 109.27],
+      ['Demo League 3', 0.75, 1, 113.78],
+      ['Demo League 4', 0.5, 2, 115.5],
+      ['Demo League 5', 0.5, 2, 143.66],
+      ['Demo League 6', 0.25, 3, 138.2],
+      ['Demo League 7 (bye week)', 0.25, 3, 113.78],
+      ['Demo League 8 (not drafted)', null, 0, null],
+      ['Demo ESPN League', 0.5, 1, 125.8],
+    ])
+  })
+
+  it('compares my overall scoring with my leagues’ overall average', () => {
+    expect(stats.total.winPct).toBe(13 / 32)
+    expect(stats.total.leaguePointsPerGame?.toFixed(2)).toBe('124.29')
   })
 
   it('totals 13 wins and 19 losses at 118.26 points per game', () => {
