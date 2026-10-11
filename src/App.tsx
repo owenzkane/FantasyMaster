@@ -3,6 +3,7 @@ import EspnLeagueForm from './components/EspnLeagueForm.tsx'
 import LeagueList from './components/LeagueList.tsx'
 import LinkedAccounts from './components/LinkedAccounts.tsx'
 import PlayersTable from './components/PlayersTable.tsx'
+import StatsView from './components/StatsView.tsx'
 import UsernameForm from './components/UsernameForm.tsx'
 import WinScenarios from './components/WinScenarios.tsx'
 import WeekPicker from './components/WeekPicker.tsx'
@@ -12,7 +13,7 @@ import { usingMock } from './platforms/index.ts'
 import { combinePlayers } from './players/combinePlayers.ts'
 import './App.css'
 
-type View = 'leagues' | 'players' | 'scenarios'
+type View = 'leagues' | 'players' | 'scenarios' | 'stats'
 
 // The NFL regular season is 18 weeks
 const LAST_WEEK = 18
@@ -111,8 +112,17 @@ function App() {
                 >
                   Win scenarios
                 </button>
+                <button
+                  type="button"
+                  aria-pressed={view === 'stats'}
+                  onClick={() => setView('stats')}
+                >
+                  Stats
+                </button>
               </div>
-              {view === 'scenarios' ? (
+              {view === 'stats' ? (
+                <StatsView leagues={state.leagues} directory={state.players} />
+              ) : view === 'scenarios' ? (
                 <WinScenarios
                   leagues={state.leagues}
                   directory={state.players}

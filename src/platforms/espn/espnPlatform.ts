@@ -89,12 +89,30 @@ export function toEspnLeagueWeek(
   directory: PlayerDirectory,
 ): LeagueWeek {
   const myTeamId = Number(league.myTeamId)
+  const myTeam = response.teams?.find((team) => team.id === myTeamId)
+  const record = myTeam?.record?.overall
+  const season = record
+    ? {
+        wins: record.wins,
+        losses: record.losses,
+        ties: record.ties,
+        pointsFor: round2(record.pointsFor),
+      }
+    : null
+  const members = (response.members ?? []).map((member) => ({
+    id: `espn:${member.id}`,
+    displayName: member.displayName,
+    realName: [member.firstName, member.lastName].filter(Boolean).join(' ') || null,
+    teamName: response.teams?.find((team) => team.owners?.includes(member.id))?.name ?? null,
+    isMe: myTeam?.owners?.includes(member.id) ?? false,
+  }))
+
   const game = response.schedule?.find(
     (matchup) =>
       matchup.matchupPeriodId === week &&
       (matchup.home.teamId === myTeamId || matchup.away?.teamId === myTeamId),
   )
-  if (!game) return { matchup: null, myPlayers: [], opponentPlayers: [] }
+  if (!game) return { matchup: null, myPlayers: [], opponentPlayers: [], season, members }
 
   const mine = game.home.teamId === myTeamId ? game.home : game.away!
   const theirs = game.home.teamId === myTeamId ? game.away : game.home
@@ -117,6 +135,8 @@ export function toEspnLeagueWeek(
     },
     myPlayers: toPlayers(mine, directory),
     opponentPlayers: theirs ? toPlayers(theirs, directory) : [],
+    season,
+    members,
   }
 }
 

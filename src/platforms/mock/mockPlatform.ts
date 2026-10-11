@@ -75,7 +75,9 @@ export const mockEspn: EspnSource = {
 
   async getLeagueWeek(league, week) {
     const response = fixture<EspnLeagueResponse>(`espn-${league.id}-week${week}`)
-    if (!response) return { matchup: null, myPlayers: [], opponentPlayers: [] }
+    if (!response) {
+      return { matchup: null, myPlayers: [], opponentPlayers: [], season: null, members: [] }
+    }
     return toEspnLeagueWeek(league, week, response, await fetchPlayerDirectory())
   },
 }

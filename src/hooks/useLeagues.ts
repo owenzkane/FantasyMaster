@@ -6,9 +6,11 @@ import { espn, nfl, platformFor, sleeper } from '../platforms/index.ts'
 import type {
   EspnFindResult,
   League,
+  LeagueMember,
   Matchup,
   PlayerDirectory,
   PlayerPoints,
+  SeasonRecord,
   User,
   WeekStats,
 } from '../platforms/types.ts'
@@ -21,6 +23,9 @@ export interface LeagueSummary {
   matchup: Matchup | null
   myPlayers: PlayerPoints[]
   opponentPlayers: PlayerPoints[]
+  // my season so far and the league's members, as of today whichever week is shown
+  season: SeasonRecord | null
+  members: LeagueMember[]
 }
 
 export type LeaguesState =

@@ -501,3 +501,45 @@ summary.league-card-row:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* Stats */
+
+.stats h3 {
+  margin: 28px 0 10px;
+}
+
+.stats h3:first-child {
+  margin-top: 0;
+}
+
+.players-table tfoot th,
+.players-table tfoot td {
+  font-weight: 600;
+  color: var(--text-strong);
+  border-bottom: 0;
+}
+
+.stat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+.stat-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 8px;
+  color: var(--text-strong);
+  border-bottom: 1px solid var(--border);
+}
+
+.stat-list .number {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.view-switch {
+  flex-wrap: wrap;
+}

@@ -30,11 +30,17 @@ export interface EspnTeam {
   name: string
   // a member's id
   primaryOwner?: string
+  // every member who runs the team, primary owner included
+  owners?: string[]
+  record?: { overall: { wins: number; losses: number; ties: number; pointsFor: number } }
 }
 
 export interface EspnMember {
   id: string
+  // often an auto-generated handle like "ESPNfan5727155805"
   displayName: string
+  firstName?: string
+  lastName?: string
 }
 
 // One game. Unlike Sleeper, both teams are already in the same object.

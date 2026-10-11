@@ -54,6 +54,26 @@ export interface PlayerPoints {
   isStarter: boolean
 }
 
+// My team's season so far
+export interface SeasonRecord {
+  wins: number
+  losses: number
+  ties: number
+  pointsFor: number
+}
+
+export interface LeagueMember {
+  // Unique across platforms: "sleeper:<user id>" or "espn:<member id>". The same person has
+  // the same ID in every league on one platform, but nothing ties a Sleeper ID to an ESPN one.
+  id: string
+  displayName: string
+  // the person's own name. ESPN provides it; Sleeper doesn't, so it's null there.
+  realName: string | null
+  // what they call their team in this league; null if they haven't named it
+  teamName: string | null
+  isMe: boolean
+}
+
 // Everything we need about one league for one week
 export interface LeagueWeek {
   // null when the user has no team in that league, or the league has no games that week
@@ -62,6 +82,11 @@ export interface LeagueWeek {
   myPlayers: PlayerPoints[]
   // empty when there is no opponent
   opponentPlayers: PlayerPoints[]
+  // The last two describe the season as it stands today, whichever week was asked for.
+  // They're here because the same requests that answer the week already contain them.
+  // null when I have no team in the league
+  season: SeasonRecord | null
+  members: LeagueMember[]
 }
 
 export interface PlayerInfo {

@@ -32,6 +32,8 @@ export interface SleeperRoster {
   co_owners: string[] | null
   // the team's current players; null before the league has drafted
   players: string[] | null
+  // season totals. Points are split in two: fpts is the whole part, fpts_decimal the hundredths
+  settings: { wins: number; losses: number; ties: number; fpts: number; fpts_decimal?: number }
 }
 
 // GET /league/{league_id}/users returns SleeperLeagueUser[]

@@ -57,10 +57,23 @@ export function toLeagueWeek(
   users: SleeperLeagueUser[],
   matchups: SleeperMatchup[],
 ): LeagueWeek {
+  const members = users.map((user) => ({
+    id: `sleeper:${user.user_id}`,
+    displayName: user.display_name,
+    realName: null,
+    teamName: user.metadata?.team_name || null,
+    isMe: user.user_id === userId,
+  }))
+
   const myRoster = rosters.find(
     (roster) => roster.owner_id === userId || roster.co_owners?.includes(userId),
   )
-  if (!myRoster) return { matchup: null, myPlayers: [], opponentPlayers: [] }
+  if (!myRoster) {
+    return { matchup: null, myPlayers: [], opponentPlayers: [], season: null, members }
+  }
+
+  const { wins, losses, ties, fpts, fpts_decimal } = myRoster.settings
+  const season = { wins, losses, ties, pointsFor: fpts + (fpts_decimal ?? 0) / 100 }
 
   const mine = matchups.find((entry) => entry.roster_id === myRoster.roster_id)
   if (!mine) {
@@ -70,6 +83,8 @@ export function toLeagueWeek(
       matchup: null,
       myPlayers: players.map((playerId) => ({ playerId, points: null, isStarter: false })),
       opponentPlayers: [],
+      season,
+      members,
     }
   }
 
@@ -101,6 +116,8 @@ export function toLeagueWeek(
     },
     myPlayers: toPlayers(mine),
     opponentPlayers: opponent ? toPlayers(opponent) : [],
+    season,
+    members,
   }
 }
 
