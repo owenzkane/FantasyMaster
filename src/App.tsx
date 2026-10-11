@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import EspnLeagueForm from './components/EspnLeagueForm.tsx'
 import LeagueList from './components/LeagueList.tsx'
 import LinkedAccounts from './components/LinkedAccounts.tsx'
+import LinkForm from './components/LinkForm.tsx'
 import PlayersTable from './components/PlayersTable.tsx'
 import StatsView from './components/StatsView.tsx'
-import UsernameForm from './components/UsernameForm.tsx'
 import WinScenarios from './components/WinScenarios.tsx'
 import WeekPicker from './components/WeekPicker.tsx'
 import { hasLinks } from './hooks/links.ts'
@@ -42,8 +41,12 @@ function App() {
         </p>
       )}
 
-      <UsernameForm disabled={busy} onSubmit={setSleeperUsername} />
-      <EspnLeagueForm disabled={busy} findLeague={findEspnLeague} onAdd={addEspnLeague} />
+      <LinkForm
+        disabled={busy}
+        onSleeperUsername={setSleeperUsername}
+        findEspnLeague={findEspnLeague}
+        onAddEspnLeague={addEspnLeague}
+      />
 
       {hasLinks(links) && (
         <LinkedAccounts

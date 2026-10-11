@@ -431,10 +431,22 @@ summary.league-card-row:focus-visible {
   outline-offset: 2px;
 }
 
-/* A second form sits under the first */
+/* The platform chooser keeps its natural width; the text box takes the rest */
 
-.link-form + .link-form {
-  margin-top: 16px;
+.link-form-row {
+  flex-wrap: wrap;
+}
+
+.link-form .platform-select {
+  flex: 0 0 auto;
+}
+
+.link-form input {
+  flex: 1 1 160px;
+}
+
+.link-form input:disabled {
+  opacity: 0.6;
 }
 
 .link-form select {
