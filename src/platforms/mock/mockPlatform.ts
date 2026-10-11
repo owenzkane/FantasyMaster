@@ -62,6 +62,12 @@ export const mockSleeper: SleeperSource = {
   async getWeekStats(_season, week) {
     return fixture<WeekStats>(`stats-week${week}`) ?? {}
   },
+
+  // The mock's week is already over, so there's nothing live. Without game information every
+  // projection stays as it was before the week.
+  async getLiveGames() {
+    return {}
+  },
 }
 
 // Pretends to be a private league with no cookies set up, to show that message offline

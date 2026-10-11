@@ -75,9 +75,23 @@ describe('LeagueCard result', () => {
     expect(cardText('past', { ...played, mine: 80 })).toContain('Lost')
   })
 
-  it('judges the current week on real points so far', () => {
-    expect(cardText('current', played)).toContain('Winning')
-    expect(cardText('current', { ...played, mine: 100 })).toContain('Tied')
+  it('judges the current week on projections, not on who is ahead right now', () => {
+    // I'm ahead 120 to 100 but projected to lose 90 to 110
+    expect(cardText('current', played)).toContain('Projected loss')
+    expect(cardText('current', played)).not.toContain('Winning')
+    expect(cardText('current', { ...played, myProjected: 130 })).toContain('Projected win')
+    expect(cardText('current', { ...played, myProjected: 110 })).toContain('Projected tie')
+  })
+
+  it('falls back to who is ahead right now when the current week has no projections', () => {
+    const noProjections = { ...played, myProjected: null, theirProjected: null }
+    expect(cardText('current', noProjections)).toContain('Winning')
+    expect(cardText('current', { ...noProjections, mine: 80 })).toContain('Losing')
+    expect(cardText('current', { ...noProjections, mine: 100 })).toContain('Tied')
+  })
+
+  it('never uses projections for a past week', () => {
+    expect(cardText('past', played)).not.toContain('Projected')
   })
 
   it('judges a future week on projections, since no points exist yet', () => {

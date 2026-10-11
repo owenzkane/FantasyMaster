@@ -84,6 +84,13 @@ function toPlayers(side: EspnMatchupSide, week: number, directory: PlayerDirecto
     .map((entry) => entry.player)
 }
 
+// ESPN's live projection of a team's final score, which counts games already played. When ESPN
+// doesn't send one (a finished week), the starters' projections from before the games are added up.
+function projectedFor(side: EspnMatchupSide, players: PlayerPoints[]) {
+  const live = side.totalProjectedPointsLive
+  return typeof live === 'number' ? round2(live) : projectedTotal(players)
+}
+
 // The roster total stays current during games; totalPoints is the fallback
 function pointsOf(side: EspnMatchupSide) {
   return round2(side.rosterForCurrentScoringPeriod?.appliedStatTotal ?? side.totalPoints)
@@ -135,14 +142,14 @@ export function toEspnLeagueWeek(
       leagueId: league.id,
       week,
       myPoints: pointsOf(mine),
-      myProjected: projectedTotal(myPlayers),
+      myProjected: projectedFor(mine, myPlayers),
       myTeamName: myTeam?.name ?? null,
       opponent: theirs
         ? {
             displayName: opponentOwner?.displayName ?? null,
             teamName: opponentTeam?.name ?? null,
             points: pointsOf(theirs),
-            projected: projectedTotal(opponentPlayers),
+            projected: theirs ? projectedFor(theirs, opponentPlayers) : null,
           }
         : null,
     },

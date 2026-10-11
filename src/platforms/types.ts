@@ -115,9 +115,22 @@ export type StatLine = Record<string, number>
 // Every player's stat line for one week, by player ID. Players who didn't play are missing.
 export type WeekStats = Record<string, StatLine>
 
+// How far along an NFL game is. `fractionRemaining` is the share of regulation time still to
+// play: 1 before kickoff, 0 once it's over.
+export interface GameStatus {
+  state: 'pre' | 'in' | 'post'
+  fractionRemaining: number
+}
+
+// Games for the week in progress, by NFL team abbreviation (Sleeper's spelling).
+// A team that isn't listed has no game: it's on a bye, or the data wasn't available.
+export type LiveGames = Record<string, GameStatus>
+
 // The one thing every fantasy platform must be able to do: describe a league's week.
+// `games` is only given for the week in progress. A platform that doesn't know a team's live
+// projection itself uses it to work one out.
 export interface FantasyPlatform {
-  getLeagueWeek(league: League, week: number): Promise<LeagueWeek>
+  getLeagueWeek(league: League, week: number, games?: LiveGames): Promise<LeagueWeek>
 }
 
 // Facts about the NFL itself, the same whatever platform a league is on.
@@ -125,6 +138,7 @@ export interface NflSource {
   getCurrentWeek(): Promise<SeasonWeek>
   getPlayerDirectory(): Promise<PlayerDirectory>
   getWeekStats(season: string, week: number): Promise<WeekStats>
+  getLiveGames(season: string, week: number): Promise<LiveGames>
 }
 
 // Sleeper links by username: one username leads to all of that user's leagues.

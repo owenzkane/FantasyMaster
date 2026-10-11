@@ -7,6 +7,7 @@ import type {
   EspnFindResult,
   League,
   LeagueMember,
+  LiveGames,
   Matchup,
   PlayerDirectory,
   PlayerPoints,
@@ -54,9 +55,13 @@ function errorState(error: unknown): LeaguesState {
 }
 
 // Everything that depends on the week: each league's matchup and players, plus real stat lines
-async function loadWeek(leagues: League[], season: string, week: number) {
+async function loadWeek(leagues: League[], season: string, week: number, currentWeek: number) {
+  // Only the week in progress has games under way; any other week is projected as it stood.
+  // The scoreboard only refines the projections, so a failure here shouldn't block the page.
+  const games =
+    week === currentWeek ? await nfl.getLiveGames(season, week).catch((): LiveGames => ({})) : undefined
   const [weeks, stats] = await Promise.all([
-    Promise.all(leagues.map((league) => platformFor(league).getLeagueWeek(league, week))),
+    Promise.all(leagues.map((league) => platformFor(league).getLeagueWeek(league, week, games))),
     // Stats only feed the what-if calculator, so a failure here shouldn't block the page
     nfl.getWeekStats(season, week).catch((): WeekStats => ({})),
   ])
@@ -120,7 +125,7 @@ async function loadLinks(wanted: Links): Promise<LoadResult> {
         currentWeek: now.week,
         week: now.week,
         changingWeek: false,
-        ...(await loadWeek([...sleeperLeagues, ...espnLeagues], now.season, now.week)),
+        ...(await loadWeek([...sleeperLeagues, ...espnLeagues], now.season, now.week, now.week)),
         players,
         warnings,
       },
@@ -202,7 +207,7 @@ export function useLeagues() {
         ...loaded,
         week,
         changingWeek: false,
-        ...(await loadWeek(leagues, loaded.season, week)),
+        ...(await loadWeek(leagues, loaded.season, week, loaded.currentWeek)),
       })
     } catch (error) {
       setState(errorState(error))

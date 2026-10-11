@@ -1,7 +1,17 @@
 // Sleeper's implementation of FantasyPlatform: fetch raw JSON, convert it to our types.
 
+import { liveProjectedTotal } from '../liveProjection.ts'
+import { fetchLiveGames } from '../nfl/scoreboard.ts'
 import { pointsFor, projectedTotal, round2 } from '../scoring.ts'
-import type { League, LeagueWeek, PlayerPoints, SleeperSource, WeekStats } from '../types.ts'
+import type {
+  League,
+  LeagueWeek,
+  LiveGames,
+  PlayerDirectory,
+  PlayerPoints,
+  SleeperSource,
+  WeekStats,
+} from '../types.ts'
 import {
   fetchLeagues,
   fetchLeagueUsers,
@@ -82,6 +92,8 @@ export function toLeagueWeek(
   users: SleeperLeagueUser[],
   matchups: SleeperMatchup[],
   project: Project = () => null,
+  // Given for the week in progress: lets a team's projection reflect games already played
+  live?: { games: LiveGames; directory: PlayerDirectory },
 ): LeagueWeek {
   const members = users.map((user) => ({
     id: `sleeper:${user.user_id}`,
@@ -134,19 +146,21 @@ export function toLeagueWeek(
   // An entry's own player list is the team as it was that week, which can differ from today's
   const myPlayers = toPlayers(mine, project)
   const opponentPlayers = opponent ? toPlayers(opponent, project) : []
+  const projectedFor = (players: PlayerPoints[]) =>
+    live ? liveProjectedTotal(players, live.directory, live.games) : projectedTotal(players)
   return {
     matchup: {
       leagueId,
       week,
       myPoints: mine.points,
-      myProjected: projectedTotal(myPlayers),
+      myProjected: projectedFor(myPlayers),
       myTeamName: teamNameOf(users, userId, myRoster.owner_id),
       opponent: opponent
         ? {
             displayName: opponentUser?.display_name ?? null,
             teamName: opponentUser?.metadata?.team_name || null,
             points: opponent.points,
-            projected: projectedTotal(opponentPlayers),
+            projected: projectedFor(opponentPlayers),
           }
         : null,
     },
@@ -174,16 +188,18 @@ export const sleeperPlatform: SleeperSource = {
     return leagues.map((league) => toLeague(league, userId))
   },
 
-  async getLeagueWeek(league, week) {
-    // The four calls don't depend on each other, so run them at the same time
-    const [rosters, users, matchups, projections] = await Promise.all([
+  async getLeagueWeek(league, week, games) {
+    // The calls don't depend on each other, so run them at the same time
+    const [rosters, users, matchups, projections, directory] = await Promise.all([
       fetchRosters(league.id),
       fetchLeagueUsers(league.id),
       fetchMatchups(league.id, week),
       fetchWeekProjections(league.season, week),
+      fetchPlayerDirectory(),
     ])
     const project = projector(projections, league.scoring)
-    return toLeagueWeek(league.id, week, league.myTeamId, rosters, users, matchups, project)
+    const live = games && { games, directory }
+    return toLeagueWeek(league.id, week, league.myTeamId, rosters, users, matchups, project, live)
   },
 
   getPlayerDirectory() {
@@ -192,5 +208,9 @@ export const sleeperPlatform: SleeperSource = {
 
   getWeekStats(season, week) {
     return fetchWeekStats(season, week)
+  },
+
+  getLiveGames(_season, week) {
+    return fetchLiveGames(week)
   },
 }

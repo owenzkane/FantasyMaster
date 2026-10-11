@@ -117,6 +117,21 @@ describe('toEspnLeagueWeek edge cases', () => {
     expect(week.opponentPlayers).toEqual([])
   })
 
+  it('uses ESPN’s own live projected total when it sends one', () => {
+    // ESPN's figure counts games already played, so it can differ a lot from the sum of the
+    // pre-game projections
+    const live = structuredClone(rawWeek4)
+    const game = live.schedule!.find((m) => m.home.teamId === 1 || m.away?.teamId === 1)!
+    const mine = game.home.teamId === 1 ? game.home : game.away!
+    const theirs = game.home.teamId === 1 ? game.away! : game.home
+    mine.totalProjectedPointsLive = 127.63714812
+    theirs.totalProjectedPointsLive = 149.37696324
+    const week = toEspnLeagueWeek(demo.espn.league, 4, live, demo.directory)
+    expect(week.matchup).toMatchObject({ myProjected: 127.64, opponent: { projected: 149.38 } })
+    // while each player's own projection stays the pre-game one
+    expect(week.myPlayers[0].projected).toBe(18.6)
+  })
+
   it('gives no matchup for a week the response doesn’t contain', () => {
     expect(toEspnLeagueWeek(demo.espn.league, 9, rawWeek4, demo.directory).matchup).toBeNull()
   })

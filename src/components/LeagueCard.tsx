@@ -24,14 +24,13 @@ interface Result {
   tone: 'good' | 'bad' | 'neutral'
 }
 
-// Past and current weeks are judged on real points. Future weeks have none (they're all 0-0),
-// so they're judged on projections, and get no result when there aren't any.
+// Past weeks are over, so they're judged on real points. The current week and future weeks are
+// judged on projections: who is expected to win, not who is ahead right now.
 function resultOf(matchup: Matchup, timing: WeekTiming): Result | null {
   const { opponent } = matchup
   if (!opponent) return null
 
-  if (timing === 'future') {
-    if (matchup.myProjected === null || opponent.projected === null) return null
+  if (timing !== 'past' && matchup.myProjected !== null && opponent.projected !== null) {
     const difference = matchup.myProjected - opponent.projected
     if (difference === 0) return { text: 'Projected tie', tone: 'neutral' }
     return difference > 0
@@ -39,6 +38,9 @@ function resultOf(matchup: Matchup, timing: WeekTiming): Result | null {
       : { text: 'Projected loss', tone: 'bad' }
   }
 
+  // No projections to go on. A future week has no points either, so it gets no result; the
+  // current week falls back to who is ahead right now.
+  if (timing === 'future') return null
   const difference = matchup.myPoints - opponent.points
   if (difference === 0) return { text: 'Tied', tone: 'neutral' }
   if (timing === 'past') {

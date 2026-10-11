@@ -53,7 +53,12 @@ export async function fetchEspnLeague(
 export async function fetchEspnWeek(leagueId: string, season: string, week: number) {
   const response = await espnFetch(
     leagueId,
-    leaguePath(leagueId, season, `view=mBoxscore&view=mTeam&scoringPeriodId=${week}`),
+    // mMatchupScore adds ESPN's own live projected totals for each team
+    leaguePath(
+      leagueId,
+      season,
+      `view=mBoxscore&view=mMatchupScore&view=mTeam&scoringPeriodId=${week}`,
+    ),
     {
       // Without this filter ESPN sends every week's schedule (about 3 MB); with it, one week
       headers: {

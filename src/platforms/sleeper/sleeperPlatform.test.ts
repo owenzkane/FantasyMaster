@@ -193,6 +193,28 @@ describe('toLeagueWeek edge cases', () => {
     expect(withProjections.matchup).toMatchObject({ myProjected: 10, opponent: { projected: null } })
   })
 
+  it('projects a team from games already played when it is given the scoreboard', () => {
+    const entries = [entry(1, 7, 10), entry(2, 7, 20)]
+    const project = projector(
+      { p1: { rec: 25 }, p2: { rec: 30 } },
+      { rec: 1 },
+    )
+    const directory = {
+      p1: { name: 'One', position: 'WR', team: 'AAA' },
+      p2: { name: 'Two', position: 'WR', team: 'BBB' },
+    }
+    const games = {
+      AAA: { state: 'post' as const, fractionRemaining: 0 },
+      BBB: { state: 'in' as const, fractionRemaining: 0.5 },
+    }
+    const week = toLeagueWeek('L', 1, 'me', rosters, users, entries, project, { games, directory })
+    // Mine is over, so what he scored (10), not his 25 projection. Theirs is half done:
+    // 20 scored plus half of a 30-point projection.
+    expect(week.matchup).toMatchObject({ myProjected: 10, opponent: { projected: 35 } })
+    // each player's own projection is still the one from before the games
+    expect(week.myPlayers[0].projected).toBe(25)
+  })
+
   it('skips empty lineup slots, which Sleeper marks as "0"', () => {
     const week = toLeagueWeek('L', 1, 'me', rosters, users, [entry(1, 7, 10), entry(2, 7, 20)])
     expect(week.myPlayers).toEqual([

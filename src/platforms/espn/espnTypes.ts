@@ -54,6 +54,9 @@ export interface EspnMatchup {
 export interface EspnMatchupSide {
   teamId: number
   totalPoints: number
+  // ESPN's own projection of the team's final score, counting what's already been scored.
+  // Only present while the week is in progress or ahead, and only with the mMatchupScore view.
+  totalProjectedPointsLive?: number
   rosterForCurrentScoringPeriod?: {
     // the starters' points added up, kept current while games are being played
     appliedStatTotal: number
