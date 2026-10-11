@@ -1,9 +1,10 @@
 // Holds the page's data state: nothing linked, loading, failed, or every linked league's week.
 
 import { useEffect, useState } from 'react'
+import { describeEspnProblem } from '../platforms/espn/espnProblems.ts'
 import { espn, nfl, platformFor, sleeper } from '../platforms/index.ts'
 import type {
-  EspnLeagueChoice,
+  EspnFindResult,
   League,
   Matchup,
   PlayerDirectory,
@@ -84,23 +85,28 @@ async function loadLinks(wanted: Links): Promise<LoadResult> {
       }
     }
 
-    const espnChoices = await Promise.all(
+    const espnResults = await Promise.all(
       wanted.espnLeagues.map((link) => espn.findLeague(link.leagueId, now.season)),
     )
     const espnLeagues: League[] = []
     wanted.espnLeagues.forEach((link, i) => {
-      const choice = espnChoices[i]
-      if (choice) {
-        espnLeagues.push({ ...choice.league, myTeamId: link.teamId })
+      const result = espnResults[i]
+      if (result.ok) {
+        espnLeagues.push({ ...result.choice.league, myTeamId: link.teamId })
       } else {
-        warnings.push(`ESPN league ${link.leagueId} couldn’t be loaded. It may be private now.`)
+        warnings.push(`ESPN league ${link.leagueId}: ${describeEspnProblem(result.problem)}`)
       }
     })
 
     return {
       links: {
         sleeperUsername: sleeperUser ? wanted.sleeperUsername : null,
-        espnLeagues: wanted.espnLeagues.filter((_, i) => espnChoices[i] !== null),
+        // A league that no longer exists is forgotten; a private one with a cookie problem is
+        // kept, since fixing the cookies will bring it back
+        espnLeagues: wanted.espnLeagues.filter((_, i) => {
+          const result = espnResults[i]
+          return result.ok || result.problem !== 'notFound'
+        }),
       },
       state: {
         status: 'loaded',
@@ -175,7 +181,7 @@ export function useLeagues() {
   }
 
   // The team picker needs a league's teams before anything is linked
-  async function findEspnLeague(leagueId: string): Promise<EspnLeagueChoice | null> {
+  async function findEspnLeague(leagueId: string): Promise<EspnFindResult> {
     const now = await nfl.getCurrentWeek()
     return espn.findLeague(leagueId, now.season)
   }

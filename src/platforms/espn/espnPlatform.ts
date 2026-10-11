@@ -123,7 +123,9 @@ export function toEspnLeagueWeek(
 export const espnPlatform: EspnSource = {
   async findLeague(leagueId, season) {
     const response = await fetchEspnLeague(leagueId, season)
-    return response ? toEspnLeagueChoice(response) : null
+    if (typeof response === 'string') return { ok: false, problem: response }
+    const choice = toEspnLeagueChoice(response)
+    return choice ? { ok: true, choice } : { ok: false, problem: 'notFound' }
   },
 
   async getLeagueWeek(league, week) {

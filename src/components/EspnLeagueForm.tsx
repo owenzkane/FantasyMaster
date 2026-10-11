@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import type { EspnLeagueChoice } from '../platforms/types.ts'
+import { describeEspnProblem } from '../platforms/espn/espnProblems.ts'
+import type { EspnFindResult, EspnLeagueChoice } from '../platforms/types.ts'
 
 interface Props {
   disabled: boolean
-  findLeague: (leagueId: string) => Promise<EspnLeagueChoice | null>
+  findLeague: (leagueId: string) => Promise<EspnFindResult>
   onAdd: (leagueId: string, teamId: string) => void
 }
 
@@ -33,12 +34,12 @@ function EspnLeagueForm({ disabled, findLeague, onAdd }: Props) {
     setSearching(true)
     setMessage(null)
     try {
-      const found = await findLeague(leagueId)
-      if (found) {
-        setChoice(found)
-        setTeamId(found.teams[0]?.id ?? '')
+      const result = await findLeague(leagueId)
+      if (result.ok) {
+        setChoice(result.choice)
+        setTeamId(result.choice.teams[0]?.id ?? '')
       } else {
-        setMessage('No public ESPN league with that ID. Private leagues can’t be linked yet.')
+        setMessage(describeEspnProblem(result.problem))
       }
     } catch (error) {
       setMessage(`Couldn’t reach ESPN. ${error instanceof Error ? error.message : ''}`)
@@ -86,7 +87,7 @@ function EspnLeagueForm({ disabled, findLeague, onAdd }: Props) {
         void find()
       }}
     >
-      <label htmlFor="espn-league">ESPN league ID (public leagues only)</label>
+      <label htmlFor="espn-league">ESPN league ID</label>
       <div className="link-form-row">
         <input
           id="espn-league"

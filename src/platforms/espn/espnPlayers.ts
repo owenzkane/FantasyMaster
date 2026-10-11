@@ -26,6 +26,8 @@ interface PlayerIndex {
   byEspnId: Map<number, string>
   // "normalized name|position" -> every Sleeper ID with that name and position
   byName: Map<string, string[]>
+  // "normalized name|NFL team", for players the two services list at different positions
+  byNameAndTeam: Map<string, string[]>
 }
 
 // Building the index walks all 12,000 players, so do it once per directory and remember it
@@ -34,21 +36,25 @@ const indexes = new WeakMap<PlayerDirectory, PlayerIndex>()
 function indexFor(directory: PlayerDirectory): PlayerIndex {
   let index = indexes.get(directory)
   if (!index) {
-    index = { byEspnId: new Map(), byName: new Map() }
+    index = { byEspnId: new Map(), byName: new Map(), byNameAndTeam: new Map() }
+    const add = (map: Map<string, string[]>, key: string, id: string) => {
+      const ids = map.get(key)
+      if (ids) ids.push(id)
+      else map.set(key, [id])
+    }
     for (const [id, player] of Object.entries(directory)) {
       if (player.espnId !== undefined) index.byEspnId.set(player.espnId, id)
-      const key = `${normalize(player.name)}|${player.position}`
-      const ids = index.byName.get(key)
-      if (ids) ids.push(id)
-      else index.byName.set(key, [id])
+      const name = normalize(player.name)
+      add(index.byName, `${name}|${player.position}`, id)
+      if (player.team) add(index.byNameAndTeam, `${name}|${player.team}`, id)
     }
     indexes.set(directory, index)
   }
   return index
 }
 
-// Three tries, most reliable first: team defenses by NFL team, then Sleeper's record of the
-// ESPN ID, then name and position. Anything left gets an "espn:" ID and shows as unknown.
+// Four tries, most reliable first: team defenses by NFL team, Sleeper's record of the ESPN ID,
+// name and position, then name and NFL team. Anything left gets an "espn:" ID and shows as unknown.
 export function toSleeperPlayerId(player: EspnPlayer, directory: PlayerDirectory): string {
   const team = PRO_TEAMS[player.proTeamId]
   // Sleeper's ID for a team defense is the team abbreviation
@@ -59,11 +65,16 @@ export function toSleeperPlayerId(player: EspnPlayer, directory: PlayerDirectory
   if (byId) return byId
 
   const position = POSITIONS[player.defaultPositionId]
-  const sameName = index.byName.get(`${normalize(player.fullName)}|${position}`) ?? []
+  const name = normalize(player.fullName)
+  const sameName = index.byName.get(`${name}|${position}`) ?? []
   if (sameName.length === 1) return sameName[0]
   // Two players share a name and position: take the one on the same NFL team, if exactly one is
   const sameTeam = sameName.filter((id) => directory[id].team === team)
   if (sameTeam.length === 1) return sameTeam[0]
+
+  // The services can disagree on position: Travis Hunter is a WR on ESPN and a DB on Sleeper
+  const sameNameAndTeam = team ? (index.byNameAndTeam.get(`${name}|${team}`) ?? []) : []
+  if (sameNameAndTeam.length === 1) return sameNameAndTeam[0]
 
   return `espn:${player.id}`
 }

@@ -112,8 +112,15 @@ export interface EspnLeagueChoice {
   teams: TeamChoice[]
 }
 
+// Why an ESPN league couldn't be read. The three "private" ones are: the app is running
+// without the dev server's proxy; the proxy has no login cookies; ESPN refused the cookies.
+export type EspnProblem = 'notFound' | 'privateNoProxy' | 'privateNoCookies' | 'privateRejected'
+
+export type EspnFindResult =
+  | { ok: true; choice: EspnLeagueChoice }
+  | { ok: false; problem: EspnProblem }
+
 // ESPN has no lookup by username: leagues are linked one at a time by ID, then a team is picked.
 export interface EspnSource extends FantasyPlatform {
-  // null when the league doesn't exist or isn't public
-  findLeague(leagueId: string, season: string): Promise<EspnLeagueChoice | null>
+  findLeague(leagueId: string, season: string): Promise<EspnFindResult>
 }

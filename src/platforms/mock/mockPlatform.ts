@@ -62,10 +62,15 @@ export const mockSleeper: SleeperSource = {
   },
 }
 
+// Pretends to be a private league with no cookies set up, to show that message offline
+const MOCK_PRIVATE_LEAGUE_ID = '2000000002'
+
 export const mockEspn: EspnSource = {
   async findLeague(leagueId) {
+    if (leagueId === MOCK_PRIVATE_LEAGUE_ID) return { ok: false, problem: 'privateNoCookies' }
     const response = fixture<EspnLeagueResponse>(`espn-${leagueId}`)
-    return response ? toEspnLeagueChoice(response) : null
+    const choice = response ? toEspnLeagueChoice(response) : null
+    return choice ? { ok: true, choice } : { ok: false, problem: 'notFound' }
   },
 
   async getLeagueWeek(league, week) {
