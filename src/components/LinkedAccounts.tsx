@@ -15,29 +15,36 @@ function LinkedAccounts({ links, leagues, disabled, onRemoveSleeper, onRemoveEsp
     leagues.find(({ league }) => league.platform === 'espn' && league.id === leagueId)?.league
       .name ?? `League ${leagueId}`
 
+  const count = (links.sleeperUsername ? 1 : 0) + links.espnLeagues.length
+
   return (
-    <ul className="linked-accounts" aria-label="Linked accounts">
-      {links.sleeperUsername && (
-        <li>
-          <span>Sleeper: {links.sleeperUsername}</span>
-          <button type="button" disabled={disabled} onClick={onRemoveSleeper}>
-            Remove
-          </button>
-        </li>
-      )}
-      {links.espnLeagues.map((link) => (
-        <li key={link.leagueId}>
-          <span>ESPN: {espnName(link.leagueId)}</span>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => onRemoveEspnLeague(link.leagueId)}
-          >
-            Remove
-          </button>
-        </li>
-      ))}
-    </ul>
+    // <details> is the browser's built-in expand/collapse; it starts closed so a long list
+    // takes up one line until it's opened
+    <details className="linked-details">
+      <summary>Linked accounts ({count})</summary>
+      <ul className="linked-accounts">
+        {links.sleeperUsername && (
+          <li>
+            <span>Sleeper: {links.sleeperUsername}</span>
+            <button type="button" disabled={disabled} onClick={onRemoveSleeper}>
+              Remove
+            </button>
+          </li>
+        )}
+        {links.espnLeagues.map((link) => (
+          <li key={link.leagueId}>
+            <span>ESPN: {espnName(link.leagueId)}</span>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => onRemoveEspnLeague(link.leagueId)}
+            >
+              Remove
+            </button>
+          </li>
+        ))}
+      </ul>
+    </details>
   )
 }
 

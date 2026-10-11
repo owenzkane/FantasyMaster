@@ -474,9 +474,26 @@ summary.league-card-row:focus-visible {
 
 /* Linked accounts */
 
+.linked-details {
+  margin-top: 20px;
+  font-size: 0.875rem;
+}
+
+.linked-details summary {
+  cursor: pointer;
+  width: fit-content;
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.linked-details summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .linked-accounts {
   list-style: none;
-  margin: 20px 0 0;
+  margin: 10px 0 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
