@@ -1,5 +1,7 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig, loadEnv } from 'vite'
+import { loadEnv } from 'vite'
+// The same defineConfig as Vite's, plus the `test` section Vitest reads
+import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -12,6 +14,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    test: {
+      // Runs before every test file
+      setupFiles: ['./vitest.setup.ts'],
+    },
     server: {
       proxy: {
         // Private ESPN leagues need my espn.com login cookies, which a web page isn't allowed
