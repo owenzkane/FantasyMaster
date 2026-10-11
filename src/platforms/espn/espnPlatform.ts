@@ -1,5 +1,6 @@
 // ESPN's implementation of FantasyPlatform: fetch raw JSON, convert it to our types.
 
+import { projectedTotal, round2 } from '../scoring.ts'
 import { fetchPlayerDirectory } from '../sleeper/sleeperApi.ts'
 import type {
   EspnLeagueChoice,
@@ -12,7 +13,7 @@ import type {
 import { fetchEspnLeague, fetchEspnWeek } from './espnApi.ts'
 import { toSleeperPlayerId } from './espnPlayers.ts'
 import { toScoring } from './espnStats.ts'
-import type { EspnLeagueResponse, EspnMatchupSide } from './espnTypes.ts'
+import type { EspnLeagueResponse, EspnMatchupSide, EspnPlayer } from './espnTypes.ts'
 
 const RECEPTIONS_STAT_ID = 53
 const BENCH_SLOTS = [20, 21]
@@ -45,18 +46,23 @@ export function toEspnLeagueChoice(response: EspnLeagueResponse): EspnLeagueChoi
   }
 }
 
-// ESPN sends points with floating-point noise, like 18.520000000000003
-function round2(value: number) {
-  return Math.round(value * 100) / 100
-}
+const PROJECTION_SOURCE = 1
 
 function slotRank(slotId: number) {
   const rank = SLOT_ORDER.indexOf(slotId)
   return rank === -1 ? SLOT_ORDER.length : rank
 }
 
+// ESPN's own projection for the week, already in this league's scoring
+function projectionOf(player: EspnPlayer, week: number) {
+  const projection = player.stats?.find(
+    (entry) => entry.statSourceId === PROJECTION_SOURCE && entry.scoringPeriodId === week,
+  )
+  return projection ? round2(projection.appliedTotal) : null
+}
+
 // One team's players for the week: starters first in lineup order, then the bench.
-function toPlayers(side: EspnMatchupSide, directory: PlayerDirectory): PlayerPoints[] {
+function toPlayers(side: EspnMatchupSide, week: number, directory: PlayerDirectory): PlayerPoints[] {
   const entries = side.rosterForCurrentScoringPeriod?.entries ?? []
   const isStarter = (slotId: number) => !BENCH_SLOTS.includes(slotId)
   return entries
@@ -64,7 +70,9 @@ function toPlayers(side: EspnMatchupSide, directory: PlayerDirectory): PlayerPoi
       slotId: entry.lineupSlotId,
       player: {
         playerId: toSleeperPlayerId(entry.playerPoolEntry.player, directory),
+        // ESPN sends points with floating-point noise, like 18.520000000000003
         points: round2(entry.playerPoolEntry.appliedStatTotal),
+        projected: projectionOf(entry.playerPoolEntry.player, week),
         isStarter: isStarter(entry.lineupSlotId),
       },
     }))
@@ -120,21 +128,26 @@ export function toEspnLeagueWeek(
   const opponentTeam = response.teams?.find((team) => team.id === theirs?.teamId)
   const opponentOwner = response.members?.find((member) => member.id === opponentTeam?.primaryOwner)
 
+  const myPlayers = toPlayers(mine, week, directory)
+  const opponentPlayers = theirs ? toPlayers(theirs, week, directory) : []
   return {
     matchup: {
       leagueId: league.id,
       week,
       myPoints: pointsOf(mine),
+      myProjected: projectedTotal(myPlayers),
+      myTeamName: myTeam?.name ?? null,
       opponent: theirs
         ? {
             displayName: opponentOwner?.displayName ?? null,
             teamName: opponentTeam?.name ?? null,
             points: pointsOf(theirs),
+            projected: projectedTotal(opponentPlayers),
           }
         : null,
     },
-    myPlayers: toPlayers(mine, directory),
-    opponentPlayers: theirs ? toPlayers(theirs, directory) : [],
+    myPlayers,
+    opponentPlayers,
     season,
     members,
   }

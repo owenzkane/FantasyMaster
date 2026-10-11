@@ -164,16 +164,25 @@ summary.league-card-row:focus-visible {
   margin: 0;
   font-size: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
-.result-won,
-.result-winning {
+.result-good {
   color: var(--good);
 }
 
-.result-lost,
-.result-losing {
+.result-bad {
   color: var(--alert);
+}
+
+/* A projection, shown small under the real number it sits with */
+
+.projected {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text);
+  white-space: nowrap;
 }
 
 /* Lineups inside an opened card */

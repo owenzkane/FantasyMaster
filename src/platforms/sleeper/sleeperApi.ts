@@ -50,6 +50,25 @@ export function fetchWeekStats(season: string, week: number) {
   return getJson<WeekStats>(`/stats/nfl/regular/${season}/${week}`)
 }
 
+// Undocumented, like the stats endpoint, and the same shape: each player's projected stat line.
+// Every Sleeper league asks for the same week, so the download is shared between them.
+const projections = new Map<string, Promise<WeekStats>>()
+
+export function fetchWeekProjections(season: string, week: number) {
+  const key = `${season}-${week}`
+  let request = projections.get(key)
+  if (!request) {
+    request = getJson<WeekStats>(`/projections/nfl/regular/${season}/${week}`).catch(() => {
+      // Projections are a nice-to-have: without them the page still works. Forget the failure
+      // so a later load tries again.
+      projections.delete(key)
+      return {}
+    })
+    projections.set(key, request)
+  }
+  return request
+}
+
 // Not a Sleeper call: this is our own slimmed copy of Sleeper's 14.7 MB player list,
 // saved in public/ by `npm run update-players`
 let playerDirectory: Promise<PlayerDirectory> | undefined

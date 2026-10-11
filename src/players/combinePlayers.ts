@@ -7,6 +7,8 @@ export interface PlayerLeagueEntry {
   leagueName: string
   // in that league's scoring; null when there are no scores for the week
   points: number | null
+  // what he was expected to score in that league; null when there's no projection
+  projected: number | null
 }
 
 export interface MyPlayer {
@@ -28,13 +30,13 @@ export function combinePlayers(leagues: LeaguePlayers[]): MyPlayer[] {
   const byId = new Map<string, MyPlayer>()
 
   for (const { league, myPlayers } of leagues) {
-    for (const { playerId, points } of myPlayers) {
+    for (const { playerId, points, projected } of myPlayers) {
       let player = byId.get(playerId)
       if (!player) {
         player = { playerId, leagues: [] }
         byId.set(playerId, player)
       }
-      player.leagues.push({ leagueId: league.id, leagueName: league.name, points })
+      player.leagues.push({ leagueId: league.id, leagueName: league.name, points, projected })
     }
   }
 

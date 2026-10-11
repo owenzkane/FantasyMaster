@@ -4,23 +4,31 @@ import { loadDemo } from '../testing/demo.ts'
 import { combinePlayers } from './combinePlayers.ts'
 
 const league = (id: string) => ({ id, name: `League ${id}` }) as League
-const player = (playerId: string, points: number | null) => ({ playerId, points, isStarter: true })
+const player = (playerId: string, points: number | null, projected: number | null = null) => ({
+  playerId,
+  points,
+  projected,
+  isStarter: true,
+})
 
 describe('combinePlayers', () => {
   it('turns each league’s players into each player’s leagues', () => {
     const combined = combinePlayers([
-      { league: league('A'), myPlayers: [player('x', 10), player('y', 5)] },
+      { league: league('A'), myPlayers: [player('x', 10, 9.5), player('y', 5)] },
       { league: league('B'), myPlayers: [player('x', 12)] },
     ])
     expect(combined).toEqual([
       {
         playerId: 'x',
         leagues: [
-          { leagueId: 'A', leagueName: 'League A', points: 10 },
-          { leagueId: 'B', leagueName: 'League B', points: 12 },
+          { leagueId: 'A', leagueName: 'League A', points: 10, projected: 9.5 },
+          { leagueId: 'B', leagueName: 'League B', points: 12, projected: null },
         ],
       },
-      { playerId: 'y', leagues: [{ leagueId: 'A', leagueName: 'League A', points: 5 }] },
+      {
+        playerId: 'y',
+        leagues: [{ leagueId: 'A', leagueName: 'League A', points: 5, projected: null }],
+      },
     ])
   })
 

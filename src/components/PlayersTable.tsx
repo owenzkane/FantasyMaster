@@ -41,6 +41,9 @@ function PlayersTable({ players, directory }: Props) {
                         <span>{entry.leagueName}</span>
                         <span className="number">
                           {entry.points === null ? '—' : entry.points.toFixed(2)}
+                          {entry.projected !== null && (
+                            <span className="projected">proj {entry.projected.toFixed(2)}</span>
+                          )}
                         </span>
                       </li>
                     ))}

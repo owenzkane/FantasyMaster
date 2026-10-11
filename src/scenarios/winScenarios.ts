@@ -1,7 +1,10 @@
 // For one player, works out what he needs to score in each league for me to win there.
 // Every other player's score is held at its current value.
 
+import { round2 } from '../platforms/scoring.ts'
 import type { League, Matchup, PlayerPoints } from '../platforms/types.ts'
+
+export { round2 }
 
 interface LeagueWeekData {
   league: League
@@ -22,11 +25,6 @@ export interface LeagueScenario {
   threshold: number | null
   // how the matchup stands with his current points
   standing: 'winning' | 'losing' | 'tied'
-}
-
-// Fantasy points have two decimals; rounding hides floating-point noise like 14.200000000000003
-export function round2(value: number) {
-  return Math.round(value * 100) / 100
 }
 
 export function winScenarios(playerId: string, leagues: LeagueWeekData[]): LeagueScenario[] {

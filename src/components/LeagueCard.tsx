@@ -13,18 +13,43 @@ interface Props {
 
 const PLATFORM_NAMES = { sleeper: 'Sleeper', espn: 'ESPN' }
 
+// A team name is what people go by in a league; the display name is only a fallback, since on
+// ESPN it's often an auto-generated handle
 function opponentLabel(opponent: Opponent) {
-  const name = opponent.displayName ?? 'Unknown opponent'
-  return opponent.teamName ? `${opponent.teamName} (${name})` : name
+  return opponent.teamName ?? opponent.displayName ?? 'Unknown opponent'
 }
 
-// Future weeks are all 0-0, so they get no result
-function resultWord(matchup: Matchup, timing: WeekTiming) {
-  if (!matchup.opponent || timing === 'future') return null
-  const difference = matchup.myPoints - matchup.opponent.points
-  if (difference === 0) return 'Tied'
-  if (timing === 'past') return difference > 0 ? 'Won' : 'Lost'
-  return difference > 0 ? 'Winning' : 'Losing'
+interface Result {
+  text: string
+  tone: 'good' | 'bad' | 'neutral'
+}
+
+// Past and current weeks are judged on real points. Future weeks have none (they're all 0-0),
+// so they're judged on projections, and get no result when there aren't any.
+function resultOf(matchup: Matchup, timing: WeekTiming): Result | null {
+  const { opponent } = matchup
+  if (!opponent) return null
+
+  if (timing === 'future') {
+    if (matchup.myProjected === null || opponent.projected === null) return null
+    const difference = matchup.myProjected - opponent.projected
+    if (difference === 0) return { text: 'Projected tie', tone: 'neutral' }
+    return difference > 0
+      ? { text: 'Projected win', tone: 'good' }
+      : { text: 'Projected loss', tone: 'bad' }
+  }
+
+  const difference = matchup.myPoints - opponent.points
+  if (difference === 0) return { text: 'Tied', tone: 'neutral' }
+  if (timing === 'past') {
+    return difference > 0 ? { text: 'Won', tone: 'good' } : { text: 'Lost', tone: 'bad' }
+  }
+  return difference > 0 ? { text: 'Winning', tone: 'good' } : { text: 'Losing', tone: 'bad' }
+}
+
+function Projected({ points }: { points: number | null }) {
+  if (points === null) return null
+  return <span className="projected">proj {points.toFixed(2)}</span>
 }
 
 function LeagueCard({ summary, timing, directory }: Props) {
@@ -47,7 +72,7 @@ function LeagueCard({ summary, timing, directory }: Props) {
   }
 
   const { opponent } = matchup
-  const result = resultWord(matchup, timing)
+  const result = resultOf(matchup, timing)
 
   return (
     <li className="league-card">
@@ -57,20 +82,28 @@ function LeagueCard({ summary, timing, directory }: Props) {
           <div>
             <h3>{league.name}</h3>
             <p className="league-meta">
-              {PLATFORM_NAMES[league.platform]} · {league.teamCount} teams ·{' '}
-              {opponent ? `vs. ${opponentLabel(opponent)}` : 'No opponent'}
+              {PLATFORM_NAMES[league.platform]} · {league.teamCount} teams
+            </p>
+            <p className="league-meta">
+              {matchup.myTeamName ?? 'You'} {opponent ? `vs. ${opponentLabel(opponent)}` : '(no opponent)'}
             </p>
           </div>
           <div className="league-card-result">
-            {result && <p className={`result result-${result.toLowerCase()}`}>{result}</p>}
+            {result && <p className={`result result-${result.tone}`}>{result.text}</p>}
             <dl className="scores">
               <div>
                 <dt>You</dt>
-                <dd>{matchup.myPoints.toFixed(2)}</dd>
+                <dd>
+                  {matchup.myPoints.toFixed(2)}
+                  <Projected points={matchup.myProjected} />
+                </dd>
               </div>
               <div>
                 <dt>Opponent</dt>
-                <dd>{opponent ? opponent.points.toFixed(2) : '—'}</dd>
+                <dd>
+                  {opponent ? opponent.points.toFixed(2) : '—'}
+                  <Projected points={opponent?.projected ?? null} />
+                </dd>
               </div>
             </dl>
           </div>

@@ -1,17 +1,11 @@
 // Converts a stat line (catches, yards, touchdowns...) into fantasy points under a league's
 // scoring rules. A stat line is the same in every league; the points it is worth are not.
 
+import { pointsFor } from '../platforms/scoring.ts'
 import type { StatLine } from '../platforms/types.ts'
 
-// Each stat times the league's points for that stat, added up.
-// Checked against Sleeper's own numbers: all 1,221 player scores in the week 4 fixtures match.
-export function pointsFor(stats: StatLine, scoring: Record<string, number>) {
-  let points = 0
-  for (const [stat, amount] of Object.entries(stats)) {
-    points += amount * (scoring[stat] ?? 0)
-  }
-  return points
-}
+// The conversion itself lives with the platforms, which also use it for projections
+export { pointsFor }
 
 export interface StatInput {
   key: string

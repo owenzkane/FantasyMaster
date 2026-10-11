@@ -35,12 +35,18 @@ export interface Opponent {
   // null when the owner hasn't named their team
   teamName: string | null
   points: number
+  // their starters' projections added up; null when there are no projections
+  projected: number | null
 }
 
 export interface Matchup {
   leagueId: string
   week: number
   myPoints: number
+  // my starters' projections added up; null when there are no projections
+  myProjected: number | null
+  // what I call my team in this league; null if I haven't named it
+  myTeamName: string | null
   // null when I have no opponent this week (bye, or a league without head-to-head games)
   opponent: Opponent | null
 }
@@ -50,6 +56,9 @@ export interface PlayerPoints {
   playerId: string
   // null when there are no scores for the week
   points: number | null
+  // what he was expected to score before the games, in this league's scoring.
+  // null when the platform has no projection for him.
+  projected: number | null
   // only starters count towards the team's score
   isStarter: boolean
 }

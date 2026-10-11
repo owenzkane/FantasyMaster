@@ -79,4 +79,7 @@ export interface EspnPlayer {
   defaultPositionId: number
   // ESPN's number for his NFL team
   proTeamId: number
+  // One entry per week and source, already scored under this league's rules.
+  // statSourceId 0 is what he really did, 1 is ESPN's projection.
+  stats?: { scoringPeriodId: number; statSourceId: number; appliedTotal: number }[]
 }

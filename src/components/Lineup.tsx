@@ -26,6 +26,9 @@ function Lineup({ title, players, directory }: Props) {
               </span>
               <span className="number">
                 {player.points === null ? '—' : player.points.toFixed(2)}
+                {player.projected !== null && (
+                  <span className="projected">proj {player.projected.toFixed(2)}</span>
+                )}
               </span>
             </li>
           )

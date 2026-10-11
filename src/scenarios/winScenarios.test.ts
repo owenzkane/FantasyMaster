@@ -5,14 +5,21 @@ import { scenarioPlayers, scoringFormat, winScenarios } from './winScenarios.ts'
 
 // A one-league setup where I have 100 and my opponent has 110
 const league = { id: 'L', name: 'League L', pointsPerReception: 0.5 } as League
-const player = (playerId: string, points: number, isStarter = true) => ({ playerId, points, isStarter })
+const player = (playerId: string, points: number, isStarter = true) => ({
+  playerId,
+  points,
+  projected: null,
+  isStarter,
+})
 const week = (myPlayers: ReturnType<typeof player>[], opponentPlayers: ReturnType<typeof player>[]) => ({
   league,
   matchup: {
     leagueId: 'L',
     week: 1,
     myPoints: 100,
-    opponent: { displayName: 'Them', teamName: null, points: 110 },
+    myProjected: null,
+    myTeamName: null,
+    opponent: { displayName: 'Them', teamName: null, points: 110, projected: null },
   },
   myPlayers,
   opponentPlayers,

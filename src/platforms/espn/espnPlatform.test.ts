@@ -51,7 +51,14 @@ describe('the ESPN league from the fixtures (week 4)', () => {
       leagueId: DEMO_ESPN_LEAGUE_ID,
       week: 4,
       myPoints: 137.94,
-      opponent: { displayName: 'espn_manager_1', teamName: 'ESPN Team 3', points: 168.9 },
+      myProjected: 131.11,
+      myTeamName: 'ESPN Team 1',
+      opponent: {
+        displayName: 'espn_manager_1',
+        teamName: 'ESPN Team 3',
+        points: 168.9,
+        projected: 121.65,
+      },
     })
   })
 
@@ -81,6 +88,14 @@ describe('the ESPN league from the fixtures (week 4)', () => {
     const players = teams.flatMap((team) => team.myPlayers)
     expect(players.length).toBeGreaterThan(100)
     expect(players.filter((player) => !demo.directory[player.playerId])).toEqual([])
+  })
+
+  it('reads ESPN’s own projection for each player, separate from what he scored', () => {
+    const quarterback = demo.espn.myPlayers[0]
+    expect(demo.directory[quarterback.playerId].name).toBe('Tyler Shough')
+    expect(quarterback).toMatchObject({ points: 15.94, projected: 18.6 })
+    const everyone = [...demo.espn.myPlayers, ...demo.espn.opponentPlayers]
+    expect(everyone.filter((player) => player.projected === null)).toEqual([])
   })
 
   it('reads my season record and marks which member is me', () => {

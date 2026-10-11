@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { loadDemo, sumStarters } from '../../testing/demo.ts'
-import { toLeagueWeek } from './sleeperPlatform.ts'
+import { projector, toLeagueWeek } from './sleeperPlatform.ts'
 import type { SleeperLeagueUser, SleeperMatchup, SleeperRoster } from './sleeperTypes.ts'
 
 let demo: Awaited<ReturnType<typeof loadDemo>>
@@ -28,11 +28,15 @@ describe('Sleeper leagues from the fixtures (week 4)', () => {
   })
 
   it('names the opponent by team name and display name', () => {
-    expect(demo.league('Demo League 1').matchup?.opponent).toEqual({
+    expect(demo.league('Demo League 1').matchup?.opponent).toMatchObject({
       displayName: 'manager_6',
       teamName: 'Team 6',
       points: 150.75,
     })
+  })
+
+  it('finds my own team name as well as my opponent’s', () => {
+    expect(demo.league('Demo League 1').matchup?.myTeamName).toBe('Team 1')
   })
 
   it('gives a matchup with no opponent on a bye', () => {
@@ -60,6 +64,38 @@ describe('Sleeper leagues from the fixtures (week 4)', () => {
   it('puts starters before the bench', () => {
     const flags = demo.league('Demo League 1').myPlayers.map((player) => player.isStarter)
     expect(flags.lastIndexOf(true)).toBeLessThan(flags.indexOf(false))
+  })
+
+  it('projects each team’s score by scoring Sleeper’s projected stat lines per league', () => {
+    const projected = demo.sleeper.map(({ league, matchup }) => [
+      league.name,
+      matchup?.myProjected ?? null,
+      matchup?.opponent?.projected ?? null,
+    ])
+    expect(projected).toEqual([
+      ['Demo League 1', 144.18, 121.67],
+      ['Demo League 2', 101.36, 110.92],
+      ['Demo League 3', 97.66, 93.13],
+      ['Demo League 4', 118.21, 100.33],
+      ['Demo League 5', 159.53, 130.27],
+      ['Demo League 6', 103.99, 152.75],
+      ['Demo League 7 (bye week)', 100.33, null],
+      ['Demo League 8 (not drafted)', null, null],
+    ])
+  })
+
+  it('projects the same player differently in leagues with different scoring', () => {
+    const lawrence = demo.playerId('Trevor Lawrence')
+    const projectedIn = (name: string) =>
+      [...demo.league(name).myPlayers, ...demo.league(name).opponentPlayers].find(
+        (player) => player.playerId === lawrence,
+      )?.projected
+    // faced in League 2, started in Leagues 4 and 5
+    expect([
+      projectedIn('Demo League 2'),
+      projectedIn('Demo League 4'),
+      projectedIn('Demo League 5'),
+    ]).toEqual([19.47, 22.69, 32.29])
   })
 
   it('reads the season record, joining the two halves of Sleeper’s points', () => {
@@ -106,6 +142,17 @@ describe('toLeagueWeek edge cases', () => {
   it('treats an empty team name as no team name', () => {
     const week = toLeagueWeek('L', 1, 'me', rosters, users, [entry(1, 7, 10), entry(2, 7, 20)])
     expect(week.matchup?.opponent?.teamName).toBeNull()
+    expect(week.matchup?.myTeamName).toBeNull()
+  })
+
+  it('finds my team name when I am only a co-owner, through the roster’s owner', () => {
+    const named = [
+      { user_id: 'owner', display_name: 'Owner', metadata: { team_name: 'Shared Team' } },
+      ...users,
+    ]
+    const coOwned = [roster(1, 'owner', ['me']), roster(2, 'them')]
+    const week = toLeagueWeek('L', 1, 'me', coOwned, named, [entry(1, 7, 10), entry(2, 7, 20)])
+    expect(week.matchup?.myTeamName).toBe('Shared Team')
   })
 
   it('does not pair two teams just because both have no game', () => {
@@ -115,7 +162,12 @@ describe('toLeagueWeek edge cases', () => {
 
   it('names an opponent with no owner as unknown (null)', () => {
     const week = toLeagueWeek('L', 1, 'me', rosters, users, [entry(1, 7, 10), entry(3, 7, 20)])
-    expect(week.matchup?.opponent).toEqual({ displayName: null, teamName: null, points: 20 })
+    expect(week.matchup?.opponent).toEqual({
+      displayName: null,
+      teamName: null,
+      points: 20,
+      projected: null,
+    })
   })
 
   it('counts a co-owner as an owner', () => {
@@ -129,8 +181,22 @@ describe('toLeagueWeek edge cases', () => {
     expect(week).toMatchObject({ matchup: null, myPlayers: [], season: null })
   })
 
+  it('has no projections unless it is given a way to project', () => {
+    const entries = [entry(1, 7, 10), entry(2, 7, 20)]
+    const without = toLeagueWeek('L', 1, 'me', rosters, users, entries)
+    expect(without.matchup).toMatchObject({ myProjected: null, opponent: { projected: null } })
+
+    const project = projector({ p1: { rec: 5, rec_yd: 50 } }, { rec: 1, rec_yd: 0.1 })
+    const withProjections = toLeagueWeek('L', 1, 'me', rosters, users, entries, project)
+    // 5 catches + 5.0 for the yards. The opponent's player has no projected line.
+    expect(withProjections.myPlayers[0].projected).toBe(10)
+    expect(withProjections.matchup).toMatchObject({ myProjected: 10, opponent: { projected: null } })
+  })
+
   it('skips empty lineup slots, which Sleeper marks as "0"', () => {
     const week = toLeagueWeek('L', 1, 'me', rosters, users, [entry(1, 7, 10), entry(2, 7, 20)])
-    expect(week.myPlayers).toEqual([{ playerId: 'p1', points: 10, isStarter: true }])
+    expect(week.myPlayers).toEqual([
+      { playerId: 'p1', points: 10, projected: null, isStarter: true },
+    ])
   })
 })

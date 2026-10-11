@@ -1,6 +1,7 @@
 // Sleeper's implementation of FantasyPlatform: fetch raw JSON, convert it to our types.
 
-import type { League, LeagueWeek, PlayerPoints, SleeperSource } from '../types.ts'
+import { pointsFor, projectedTotal, round2 } from '../scoring.ts'
+import type { League, LeagueWeek, PlayerPoints, SleeperSource, WeekStats } from '../types.ts'
 import {
   fetchLeagues,
   fetchLeagueUsers,
@@ -9,6 +10,7 @@ import {
   fetchRosters,
   fetchState,
   fetchUser,
+  fetchWeekProjections,
   fetchWeekStats,
 } from './sleeperApi.ts'
 import type {
@@ -32,13 +34,36 @@ export function toLeague(league: SleeperLeague, userId: string): League {
   }
 }
 
+// Gives a player's projected points in one league, or null if he has no projection
+type Project = (playerId: string) => number | null
+
+// Sleeper projects stat lines, not points, so the same scoring formula used for real stats
+// turns a projected line into projected points under each league's own rules.
+export function projector(projections: WeekStats, scoring: League['scoring']): Project {
+  return (playerId) => {
+    const line = projections[playerId]
+    return line && scoring ? round2(pointsFor(line, scoring)) : null
+  }
+}
+
+// A team's name is set by its owner, so it's found through the owner's league membership.
+// Several IDs are tried in order, since I may be a co-owner whose own ID isn't the roster's owner.
+function teamNameOf(users: SleeperLeagueUser[], ...userIds: (string | null)[]) {
+  for (const userId of userIds) {
+    const teamName = users.find((user) => user.user_id === userId)?.metadata?.team_name
+    if (teamName) return teamName
+  }
+  return null
+}
+
 // One team's players for the week: starters first in lineup order, then the bench.
-function toPlayers(entry: SleeperMatchup): PlayerPoints[] {
+function toPlayers(entry: SleeperMatchup, project: Project): PlayerPoints[] {
   const starters = (entry.starters ?? []).filter((playerId) => playerId !== '0')
   const bench = (entry.players ?? []).filter((playerId) => !starters.includes(playerId))
   const toPlayer = (playerId: string, isStarter: boolean): PlayerPoints => ({
     playerId,
     points: entry.players_points?.[playerId] ?? null,
+    projected: project(playerId),
     isStarter,
   })
   return [
@@ -56,6 +81,7 @@ export function toLeagueWeek(
   rosters: SleeperRoster[],
   users: SleeperLeagueUser[],
   matchups: SleeperMatchup[],
+  project: Project = () => null,
 ): LeagueWeek {
   const members = users.map((user) => ({
     id: `sleeper:${user.user_id}`,
@@ -81,7 +107,12 @@ export function toLeagueWeek(
     const players = myRoster.players ?? []
     return {
       matchup: null,
-      myPlayers: players.map((playerId) => ({ playerId, points: null, isStarter: false })),
+      myPlayers: players.map((playerId) => ({
+        playerId,
+        points: null,
+        projected: project(playerId),
+        isStarter: false,
+      })),
       opponentPlayers: [],
       season,
       members,
@@ -101,21 +132,26 @@ export function toLeagueWeek(
   const opponentUser = users.find((user) => user.user_id === opponentRoster?.owner_id)
 
   // An entry's own player list is the team as it was that week, which can differ from today's
+  const myPlayers = toPlayers(mine, project)
+  const opponentPlayers = opponent ? toPlayers(opponent, project) : []
   return {
     matchup: {
       leagueId,
       week,
       myPoints: mine.points,
+      myProjected: projectedTotal(myPlayers),
+      myTeamName: teamNameOf(users, userId, myRoster.owner_id),
       opponent: opponent
         ? {
             displayName: opponentUser?.display_name ?? null,
             teamName: opponentUser?.metadata?.team_name || null,
             points: opponent.points,
+            projected: projectedTotal(opponentPlayers),
           }
         : null,
     },
-    myPlayers: toPlayers(mine),
-    opponentPlayers: opponent ? toPlayers(opponent) : [],
+    myPlayers,
+    opponentPlayers,
     season,
     members,
   }
@@ -139,13 +175,15 @@ export const sleeperPlatform: SleeperSource = {
   },
 
   async getLeagueWeek(league, week) {
-    // The three calls don't depend on each other, so run them at the same time
-    const [rosters, users, matchups] = await Promise.all([
+    // The four calls don't depend on each other, so run them at the same time
+    const [rosters, users, matchups, projections] = await Promise.all([
       fetchRosters(league.id),
       fetchLeagueUsers(league.id),
       fetchMatchups(league.id, week),
+      fetchWeekProjections(league.season, week),
     ])
-    return toLeagueWeek(league.id, week, league.myTeamId, rosters, users, matchups)
+    const project = projector(projections, league.scoring)
+    return toLeagueWeek(league.id, week, league.myTeamId, rosters, users, matchups, project)
   },
 
   getPlayerDirectory() {

@@ -72,7 +72,7 @@ describe('crossLeagueStats', () => {
   })
 
   it('lists players I roster in two or more leagues', () => {
-    const player = (playerId: string) => ({ playerId, points: 1, isStarter: true })
+    const player = (playerId: string) => ({ playerId, points: 1, projected: null, isStarter: true })
     const stats = crossLeagueStats([
       { league: league('A'), season: null, members: [], myPlayers: [player('x'), player('y')] },
       { league: league('B'), season: null, members: [], myPlayers: [player('x')] },

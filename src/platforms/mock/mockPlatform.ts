@@ -4,7 +4,7 @@
 import type { EspnLeagueResponse } from '../espn/espnTypes.ts'
 import { toEspnLeagueChoice, toEspnLeagueWeek } from '../espn/espnPlatform.ts'
 import { fetchPlayerDirectory } from '../sleeper/sleeperApi.ts'
-import { toLeague, toLeagueWeek } from '../sleeper/sleeperPlatform.ts'
+import { projector, toLeague, toLeagueWeek } from '../sleeper/sleeperPlatform.ts'
 import type {
   SleeperLeague,
   SleeperLeagueUser,
@@ -49,7 +49,9 @@ export const mockSleeper: SleeperSource = {
     const rosters = fixture<SleeperRoster[]>(`rosters-${league.id}`) ?? []
     const users = fixture<SleeperLeagueUser[]>(`users-${league.id}`) ?? []
     const matchups = fixture<SleeperMatchup[]>(`matchups-${league.id}-week${week}`) ?? []
-    return toLeagueWeek(league.id, week, league.myTeamId, rosters, users, matchups)
+    const projections = fixture<WeekStats>(`projections-week${week}`) ?? {}
+    const project = projector(projections, league.scoring)
+    return toLeagueWeek(league.id, week, league.myTeamId, rosters, users, matchups, project)
   },
 
   // The player list is already a local file, so the mock loads the same one
