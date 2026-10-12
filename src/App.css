@@ -357,18 +357,15 @@ summary.league-card-row:focus-visible {
 
 /* Win scenarios */
 
-.scenario-picker {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+.player-search label {
+  display: block;
   font-size: 0.875rem;
+  margin-bottom: 6px;
 }
 
-.scenario-picker select {
-  max-width: 100%;
-  padding: 6px 8px;
+.player-search input {
+  width: 100%;
+  padding: 10px 12px;
   font: inherit;
   color: var(--text-strong);
   background: var(--bg);
@@ -376,9 +373,48 @@ summary.league-card-row:focus-visible {
   border-radius: 8px;
 }
 
-.scenario-picker select:focus-visible {
+.player-search input:focus-visible,
+.search-results button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+.search-results {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+
+.search-results button {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  color: var(--text-strong);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.search-results button:hover {
+  background: var(--bg);
+}
+
+.search-results .player-meta {
+  white-space: nowrap;
+}
+
+.scenario-player {
+  margin: 20px 0 10px;
 }
 
 .scenario-note {

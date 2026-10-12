@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { LeagueSummary } from '../hooks/useLeagues.ts'
 import type { PlayerDirectory, WeekStats } from '../platforms/types.ts'
+import { searchPlayers } from '../scenarios/searchPlayers.ts'
 import { statInputs } from '../scenarios/statLine.ts'
 import { scenarioPlayers, scoringFormat, winScenarios } from '../scenarios/winScenarios.ts'
 import type { LeagueScenario } from '../scenarios/winScenarios.ts'
@@ -32,6 +33,7 @@ function needs({ role, threshold }: LeagueScenario) {
 
 function WinScenarios({ leagues, directory, stats, week }: Props) {
   const [chosenId, setChosenId] = useState('')
+  const [query, setQuery] = useState('')
 
   const options = scenarioPlayers(leagues)
   if (options.length === 0) {
@@ -44,22 +46,63 @@ function WinScenarios({ leagues, directory, stats, week }: Props) {
     ? chosenId
     : options[0].playerId
   const scenarios = winScenarios(playerId, leagues)
-  const position = directory[playerId]?.position ?? null
+  const info = directory[playerId]
+  const position = info?.position ?? null
   const inputs = statInputs(position)
+
+  const matches = searchPlayers(query, options, directory)
+  const leaguesText = (count: number) => `${count} ${count === 1 ? 'league' : 'leagues'}`
+  const choose = (id: string) => {
+    setChosenId(id)
+    setQuery('')
+  }
 
   return (
     <div className="scenarios">
-      <label className="scenario-picker">
-        Player
-        <select value={playerId} onChange={(event) => setChosenId(event.target.value)}>
-          {options.map((option) => (
-            <option key={option.playerId} value={option.playerId}>
-              {name(option.playerId)} ({option.leagueCount}{' '}
-              {option.leagueCount === 1 ? 'league' : 'leagues'})
-            </option>
+      <form
+        className="player-search"
+        role="search"
+        onSubmit={(event) => {
+          // Pressing Enter picks the top match
+          event.preventDefault()
+          if (matches.length > 0) choose(matches[0].playerId)
+        }}
+      >
+        <label htmlFor="player-search">Search for a player</label>
+        <input
+          id="player-search"
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Any starter in your matchups"
+          autoComplete="off"
+          spellCheck={false}
+        />
+        {query.trim() !== '' &&
+          (matches.length === 0 ? (
+            <p className="scenario-note">No starter in your matchups matches “{query.trim()}”.</p>
+          ) : (
+            <ul className="search-results">
+              {matches.map((match) => (
+                <li key={match.playerId}>
+                  <button type="button" onClick={() => choose(match.playerId)}>
+                    <span>{name(match.playerId)}</span>
+                    <span className="player-meta">{leaguesText(match.leagueCount)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           ))}
-        </select>
-      </label>
+      </form>
+
+      <h3 className="scenario-player">
+        {name(playerId)}
+        {info && (
+          <span className="player-meta">
+            {[info.position, info.team ?? 'Free agent'].filter(Boolean).join(' · ')}
+          </span>
+        )}
+      </h3>
 
       <div className="players-table-wrap">
         <table className="players-table">
