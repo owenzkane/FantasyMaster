@@ -12,6 +12,8 @@ interface Props {
   inputs: StatInput[]
   // his real stats this week; empty if he hasn't played or stats couldn't be loaded
   actual: StatLine
+  // true once his score can't change, which turns the what-if into a "what if he had..."
+  settled: boolean
 }
 
 // What I need from one stat, with the rest of the line as typed
@@ -35,6 +37,13 @@ function needed(scenario: LeagueScenario, max: number, pointsAt: (value: number)
   return 'Any'
 }
 
+const ROLE_LABELS = {
+  myStarter: 'you start him',
+  opponentStarter: 'you face him',
+  myBench: 'on your bench',
+  opponentBench: 'on their bench',
+}
+
 function result({ role, threshold, standing }: LeagueScenario, points: number) {
   if (threshold === null) return `Doesn’t count (${standing})`
   if (points === threshold) return 'Tie'
@@ -42,7 +51,7 @@ function result({ role, threshold, standing }: LeagueScenario, points: number) {
   return win ? 'Win' : 'Lose'
 }
 
-function StatLineWhatIf({ scenarios, position, inputs, actual }: Props) {
+function StatLineWhatIf({ scenarios, position, inputs, actual, settled }: Props) {
   // Text, not numbers, so a box can be empty while you type. Starts from his real line.
   const [text, setText] = useState<Record<string, string>>(() =>
     Object.fromEntries(inputs.map((input) => [input.key, String(actual[input.key] ?? 0)])),
@@ -79,11 +88,48 @@ function StatLineWhatIf({ scenarios, position, inputs, actual }: Props) {
   const counted = rows.filter((row) => row.scenario.threshold !== null)
   const wins = counted.filter((row) => result(row.scenario, row.points) === 'Win').length
 
+  // The same results, split by which side of the matchup he's on. A big game from him helps
+  // where I start him and hurts where I face him, so the two are worth reading separately.
+  const sides = [
+    { label: 'You start him', role: 'myStarter' },
+    { label: 'You face him', role: 'opponentStarter' },
+  ]
+    .map((side) => {
+      const leagues = counted.filter((row) => row.scenario.role === side.role)
+      const namesWhere = (outcome: string) =>
+        leagues
+          .filter((row) => result(row.scenario, row.points) === outcome)
+          .map((row) => row.scenario.league.name)
+      return {
+        label: side.label,
+        count: leagues.length,
+        outcomes: [
+          { verb: settled ? 'won' : 'win', leagues: namesWhere('Win') },
+          { verb: settled ? 'lost' : 'lose', leagues: namesWhere('Lose') },
+          { verb: settled ? 'tied' : 'tie', leagues: namesWhere('Tie') },
+        ].filter((outcome) => outcome.leagues.length > 0),
+      }
+    })
+    .filter((side) => side.count > 0)
+  const benched = rows
+    .filter((row) => row.scenario.threshold === null)
+    .map((row) => row.scenario.league.name)
+
   return (
     <section className="what-if">
-      <h3>What if he finishes with…</h3>
+      <h3>{settled ? 'What if he had finished with…' : 'What if he finishes with…'}</h3>
+      {settled && (
+        <p className="scenario-note">
+          His week is over, so this can’t change the result. It shows what a different game
+          would have meant.
+        </p>
+      )}
       {Object.keys(actual).length === 0 && (
-        <p className="scenario-note">No stats for him this week yet, so the line starts at zero.</p>
+        <p className="scenario-note">
+          {settled
+            ? 'He has no stats for this week, so the line starts at zero.'
+            : 'No stats for him this week yet, so the line starts at zero.'}
+        </p>
       )}
       <div className="stat-inputs">
         {inputs.map((input) => (
@@ -101,9 +147,26 @@ function StatLineWhatIf({ scenarios, position, inputs, actual }: Props) {
       </div>
 
       <p className="what-if-summary">
-        With this line you win {wins} of the {counted.length}{' '}
+        With this line you {settled ? 'would have won' : 'win'} {wins} of the {counted.length}{' '}
         {counted.length === 1 ? 'matchup' : 'matchups'} he counts in.
       </p>
+      <ul className="what-if-sides">
+        {sides.map((side) => (
+          <li key={side.label}>
+            <strong>
+              {side.label} in {side.count} {side.count === 1 ? 'league' : 'leagues'}:
+            </strong>{' '}
+            {side.outcomes
+              .map((outcome) => `${outcome.verb} in ${outcome.leagues.join(', ')}`)
+              .join('; ')}
+          </li>
+        ))}
+        {benched.length > 0 && (
+          <li>
+            <strong>Benched, so he doesn’t count:</strong> {benched.join(', ')}
+          </li>
+        )}
+      </ul>
 
       <div className="players-table-wrap">
         <table className="players-table">
@@ -133,7 +196,9 @@ function StatLineWhatIf({ scenarios, position, inputs, actual }: Props) {
               <tr key={scenario.league.id}>
                 <th scope="row">
                   {scenario.league.name}
-                  <span className="player-meta">{scoringFormat(scenario.league)}</span>
+                  <span className="player-meta">
+                    {scoringFormat(scenario.league)} · {ROLE_LABELS[scenario.role]}
+                  </span>
                 </th>
                 <td className="number">
                   {points.toFixed(2)}

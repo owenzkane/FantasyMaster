@@ -48,6 +48,8 @@ export type LeaguesState =
       stats: WeekStats
       // each player's injury designation as of today; empty if it couldn't be loaded
       injuries: InjuryStatuses
+      // which NFL games are over or under way. Only filled in for the week in progress.
+      games: LiveGames
       players: PlayerDirectory
       // things that went wrong without stopping the load, e.g. an ESPN league that turned private
       warnings: string[]
@@ -73,6 +75,7 @@ async function loadWeek(leagues: League[], season: string, week: number, current
     leagues: leagues.map((league, i): LeagueSummary => ({ league, ...weeks[i] })),
     stats,
     injuries,
+    games: games ?? {},
   }
 }
 

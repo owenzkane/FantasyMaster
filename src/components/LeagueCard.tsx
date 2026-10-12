@@ -1,9 +1,9 @@
 import type { LeagueSummary } from '../hooks/useLeagues.ts'
 import type { Matchup, Opponent, PlayerDirectory } from '../platforms/types.ts'
+import type { WeekTiming } from '../scenarios/gameStatus.ts'
 import Lineup from './Lineup.tsx'
 
-// Whether the week being shown is before, the same as, or after the real current week
-export type WeekTiming = 'past' | 'current' | 'future'
+export type { WeekTiming }
 
 interface Props {
   summary: LeagueSummary

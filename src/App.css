@@ -414,7 +414,28 @@ summary.league-card-row:focus-visible {
 }
 
 .scenario-player {
-  margin: 20px 0 10px;
+  margin: 20px 0 6px;
+}
+
+.game-state {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+}
+
+.game-state-tag {
+  font-weight: 700;
+}
+
+.game-state-good {
+  color: var(--good);
+}
+
+.game-state-warn {
+  color: var(--warn);
+}
+
+.game-state-neutral {
+  color: var(--text-strong);
 }
 
 .scenario-note {
@@ -456,8 +477,23 @@ summary.league-card-row:focus-visible {
 }
 
 .what-if-summary {
-  margin: 16px 0 8px;
+  margin: 16px 0 6px;
   font-weight: 600;
+  color: var(--text-strong);
+}
+
+.what-if-sides {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+.what-if-sides li {
+  padding: 2px 0;
+}
+
+.what-if-sides strong {
   color: var(--text-strong);
 }
 

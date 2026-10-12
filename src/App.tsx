@@ -10,12 +10,18 @@ import { hasLinks } from './hooks/links.ts'
 import { useLeagues } from './hooks/useLeagues.ts'
 import { usingMock } from './platforms/index.ts'
 import { combinePlayers } from './players/combinePlayers.ts'
+import type { WeekTiming } from './scenarios/gameStatus.ts'
 import './App.css'
 
 type View = 'leagues' | 'players' | 'scenarios' | 'stats'
 
 // The NFL regular season is 18 weeks
 const LAST_WEEK = 18
+
+// Whether the week on screen is before, the same as, or after the real current week
+function timingOf(week: number, currentWeek: number): WeekTiming {
+  return week < currentWeek ? 'past' : week > currentWeek ? 'future' : 'current'
+}
 
 function App() {
   const {
@@ -131,17 +137,13 @@ function App() {
                   directory={state.players}
                   stats={state.stats}
                   week={state.week}
+                  timing={timingOf(state.week, state.currentWeek)}
+                  games={state.games}
                 />
               ) : view === 'leagues' ? (
                 <LeagueList
                   leagues={state.leagues}
-                  timing={
-                    state.week < state.currentWeek
-                      ? 'past'
-                      : state.week > state.currentWeek
-                        ? 'future'
-                        : 'current'
-                  }
+                  timing={timingOf(state.week, state.currentWeek)}
                   directory={state.players}
                 />
               ) : (

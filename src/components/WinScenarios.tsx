@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import type { LeagueSummary } from '../hooks/useLeagues.ts'
-import type { PlayerDirectory, WeekStats } from '../platforms/types.ts'
+import type { LiveGames, PlayerDirectory, WeekStats } from '../platforms/types.ts'
+import { gameState, isSettled } from '../scenarios/gameStatus.ts'
+import type { GameState, WeekTiming } from '../scenarios/gameStatus.ts'
 import { searchPlayers } from '../scenarios/searchPlayers.ts'
 import { statInputs } from '../scenarios/statLine.ts'
 import { scenarioPlayers, scoringFormat, winScenarios } from '../scenarios/winScenarios.ts'
@@ -12,6 +14,17 @@ interface Props {
   directory: PlayerDirectory
   stats: WeekStats
   week: number
+  timing: WeekTiming
+  games: LiveGames
+}
+
+// What each state means for the person reading: can he still score or not
+const GAME_LABELS: Record<GameState, { text: string; detail: string; tone: string }> = {
+  upcoming: { text: 'Yet to play', detail: 'He can still score.', tone: 'good' },
+  live: { text: 'Playing now', detail: 'His score can still change.', tone: 'warn' },
+  final: { text: 'Has played', detail: 'His score is final.', tone: 'neutral' },
+  bye: { text: 'On a bye', detail: 'He has no game this week.', tone: 'neutral' },
+  didNotPlay: { text: 'Did not play', detail: 'He has no stats for this week.', tone: 'neutral' },
 }
 
 const ROLE_LABELS = {
@@ -31,7 +44,7 @@ function needs({ role, threshold }: LeagueScenario) {
   return threshold <= 0 ? 'You can’t win' : `Fewer than ${threshold.toFixed(2)}`
 }
 
-function WinScenarios({ leagues, directory, stats, week }: Props) {
+function WinScenarios({ leagues, directory, stats, week, timing, games }: Props) {
   const [chosenId, setChosenId] = useState('')
   const [query, setQuery] = useState('')
 
@@ -49,6 +62,9 @@ function WinScenarios({ leagues, directory, stats, week }: Props) {
   const info = directory[playerId]
   const position = info?.position ?? null
   const inputs = statInputs(position)
+
+  const state = gameState(playerId, { timing, games, directory, stats })
+  const settled = isSettled(state)
 
   const matches = searchPlayers(query, options, directory)
   const leaguesText = (count: number) => `${count} ${count === 1 ? 'league' : 'leagues'}`
@@ -103,6 +119,14 @@ function WinScenarios({ leagues, directory, stats, week }: Props) {
           </span>
         )}
       </h3>
+      {state && (
+        <p className="game-state">
+          <span className={`game-state-tag game-state-${GAME_LABELS[state].tone}`}>
+            {GAME_LABELS[state].text}
+          </span>{' '}
+          {GAME_LABELS[state].detail}
+        </p>
+      )}
 
       <div className="players-table-wrap">
         <table className="players-table">
@@ -113,7 +137,7 @@ function WinScenarios({ leagues, directory, stats, week }: Props) {
               <th scope="col" className="number">
                 He has
               </th>
-              <th scope="col">He needs</th>
+              <th scope="col">{settled ? 'He needed' : 'He needs'}</th>
               <th scope="col">Right now</th>
             </tr>
           </thead>
@@ -147,6 +171,7 @@ function WinScenarios({ leagues, directory, stats, week }: Props) {
           position={position}
           inputs={inputs}
           actual={stats[playerId] ?? {}}
+          settled={settled}
         />
       ) : (
         <p className="scenario-note">
