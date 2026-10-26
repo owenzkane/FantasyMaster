@@ -36,7 +36,7 @@ function StatsView({ leagues, directory }: Props) {
     <div className="stats">
       <h3>Season so far</h3>
       <div className="players-table-wrap">
-        <table className="players-table">
+        <table className="table players-table">
           <thead>
             <tr>
               <th scope="col">League</th>
@@ -82,9 +82,9 @@ function StatsView({ leagues, directory }: Props) {
         </table>
       </div>
       <p className="scenario-note">
-        Records and points are for the season to date and don’t change with the week picker.
-        “Games behind” is how far you are from the best record in that league; a dash means
-        first place. “League average” is what teams in that league score per game.
+        Records and points are for the season to date and don’t change with the week picker. “Games
+        behind” is how far you are from the best record in that league; a dash means first place.
+        “League average” is what teams in that league score per game.
       </p>
 
       <h3>Managers you share the most leagues with</h3>
@@ -111,8 +111,8 @@ function StatsView({ leagues, directory }: Props) {
       )}
       {platforms.size > 1 && (
         <p className="scenario-note">
-          Sleeper and ESPN accounts are counted separately: nothing links one person’s accounts
-          on the two services.
+          Sleeper and ESPN accounts are counted separately: nothing links one person’s accounts on
+          the two services.
         </p>
       )}
 

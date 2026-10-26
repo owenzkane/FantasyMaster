@@ -26,7 +26,12 @@ function LinkedAccounts({ links, leagues, disabled, onRemoveSleeper, onRemoveEsp
         {links.sleeperUsername && (
           <li>
             <span>Sleeper: {links.sleeperUsername}</span>
-            <button type="button" disabled={disabled} onClick={onRemoveSleeper}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={disabled}
+              onClick={onRemoveSleeper}
+            >
               Remove
             </button>
           </li>
@@ -36,6 +41,7 @@ function LinkedAccounts({ links, leagues, disabled, onRemoveSleeper, onRemoveEsp
             <span>ESPN: {espnName(link.leagueId)}</span>
             <button
               type="button"
+              className="btn btn-ghost"
               disabled={disabled}
               onClick={() => onRemoveEspnLeague(link.leagueId)}
             >

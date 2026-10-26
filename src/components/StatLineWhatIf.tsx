@@ -4,6 +4,9 @@ import { applyLine, keptPoints, pointsFor } from '../scenarios/statLine.ts'
 import type { StatInput } from '../scenarios/statLine.ts'
 import { round2, scoringFormat } from '../scenarios/winScenarios.ts'
 import type { LeagueScenario } from '../scenarios/winScenarios.ts'
+import { neededStat } from '../scenarios/neededStat.ts'
+import { outcomeAt } from '../scenarios/winningLine.ts'
+import type { StartingLine } from '../scenarios/winningLine.ts'
 
 interface Props {
   // one per league the player is in; bench rows have no threshold
@@ -14,27 +17,8 @@ interface Props {
   actual: StatLine
   // true once his score can't change, which turns the what-if into a "what if he had..."
   settled: boolean
-}
-
-// What I need from one stat, with the rest of the line as typed
-function needed(scenario: LeagueScenario, max: number, pointsAt: (value: number) => number) {
-  const { role, threshold } = scenario
-  if (threshold === null) return 'Doesn’t count'
-
-  if (role === 'myStarter') {
-    // Smallest value that puts him over the threshold
-    for (let value = 0; value <= max; value++) {
-      if (pointsAt(value) > threshold) return value === 0 ? 'Any' : `At least ${value}`
-    }
-    return 'Out of reach'
-  }
-
-  // Opponent's starter: largest value that keeps him under the threshold
-  if (pointsAt(0) >= threshold) return 'You can’t win'
-  for (let value = 1; value <= max; value++) {
-    if (pointsAt(value) >= threshold) return `At most ${value - 1}`
-  }
-  return 'Any'
+  // what the boxes are filled with to begin with
+  start: StartingLine
 }
 
 const ROLE_LABELS = {
@@ -44,18 +28,30 @@ const ROLE_LABELS = {
   opponentBench: 'on their bench',
 }
 
-function result({ role, threshold, standing }: LeagueScenario, points: number) {
-  if (threshold === null) return `Doesn’t count (${standing})`
-  if (points === threshold) return 'Tie'
-  const win = role === 'myStarter' ? points > threshold : points < threshold
-  return win ? 'Win' : 'Lose'
+const OUTCOME_WORDS = { win: 'Win', lose: 'Lose', tie: 'Tie' }
+
+function result(scenario: LeagueScenario, points: number) {
+  const outcome = outcomeAt(scenario, points)
+  return outcome ? OUTCOME_WORDS[outcome] : `Doesn’t count (${scenario.standing})`
 }
 
-function StatLineWhatIf({ scenarios, position, inputs, actual, settled }: Props) {
-  // Text, not numbers, so a box can be empty while you type. Starts from his real line.
-  const [text, setText] = useState<Record<string, string>>(() =>
-    Object.fromEntries(inputs.map((input) => [input.key, String(actual[input.key] ?? 0)])),
-  )
+// The boxes hold text, not numbers, so one can be empty while you type
+function asText(line: StatLine, inputs: StatInput[]) {
+  return Object.fromEntries(inputs.map((input) => [input.key, String(line[input.key] ?? 0)]))
+}
+
+const START_NOTES = {
+  winning:
+    'Filled in with a line that wins every matchup he counts in. Change any number to try another.',
+  none: 'No single line wins every matchup he counts in, so it starts at zero.',
+  real: null,
+}
+
+function StatLineWhatIf({ scenarios, position, inputs, actual, settled, start }: Props) {
+  const [text, setText] = useState<Record<string, string>>(() => asText(start.line, inputs))
+  // The note about how the boxes were filled only holds until one is changed
+  const [untouched, setUntouched] = useState(true)
+  const hasRealLine = Object.keys(actual).length > 0
   const solvable = inputs.filter((input) => input.solveMax !== undefined)
   const [solveKey, setSolveKey] = useState(
     position === 'QB' ? 'pass_yd' : position === 'RB' ? 'rush_yd' : 'rec_yd',
@@ -76,7 +72,7 @@ function StatLineWhatIf({ scenarios, position, inputs, actual, settled }: Props)
         scenario,
         points: pointsWith({}),
         kept: round2(keptPoints(actual, inputs, position, scoring)),
-        needed: needed(scenario, solveInput.solveMax ?? 0, (value) =>
+        needed: neededStat(scenario, solveInput.solveMax ?? 0, (value) =>
           pointsWith({ [solveInput.key]: value }),
         ),
       },
@@ -120,31 +116,43 @@ function StatLineWhatIf({ scenarios, position, inputs, actual, settled }: Props)
       <h3>{settled ? 'What if he had finished with…' : 'What if he finishes with…'}</h3>
       {settled && (
         <p className="scenario-note">
-          His week is over, so this can’t change the result. It shows what a different game
-          would have meant.
+          His week is over, so this can’t change the result. It shows what a different game would
+          have meant.
         </p>
       )}
-      {Object.keys(actual).length === 0 && (
-        <p className="scenario-note">
-          {settled
-            ? 'He has no stats for this week, so the line starts at zero.'
-            : 'No stats for him this week yet, so the line starts at zero.'}
-        </p>
+      {untouched && START_NOTES[start.kind] && (
+        <p className="scenario-note">{START_NOTES[start.kind]}</p>
       )}
       <div className="stat-inputs">
         {inputs.map((input) => (
           <label key={input.key}>
             {input.label}
             <input
+              className="input"
               type="number"
               min="0"
               inputMode="numeric"
               value={text[input.key]}
-              onChange={(event) => setText({ ...text, [input.key]: event.target.value })}
+              onChange={(event) => {
+                setText({ ...text, [input.key]: event.target.value })
+                setUntouched(false)
+              }}
             />
           </label>
         ))}
       </div>
+      {hasRealLine && (
+        <button
+          type="button"
+          className="btn btn-ghost what-if-reset"
+          onClick={() => {
+            setText(asText(actual, inputs))
+            setUntouched(false)
+          }}
+        >
+          Use his real line
+        </button>
+      )}
 
       <p className="what-if-summary">
         With this line you {settled ? 'would have won' : 'win'} {wins} of the {counted.length}{' '}
@@ -169,7 +177,7 @@ function StatLineWhatIf({ scenarios, position, inputs, actual, settled }: Props)
       </ul>
 
       <div className="players-table-wrap">
-        <table className="players-table">
+        <table className="table players-table">
           <thead>
             <tr>
               <th scope="col">League</th>
@@ -180,7 +188,11 @@ function StatLineWhatIf({ scenarios, position, inputs, actual, settled }: Props)
               <th scope="col">
                 <label className="solve-picker">
                   Needed
-                  <select value={solveInput.key} onChange={(event) => setSolveKey(event.target.value)}>
+                  <select
+                    className="select"
+                    value={solveInput.key}
+                    onChange={(event) => setSolveKey(event.target.value)}
+                  >
                     {solvable.map((input) => (
                       <option key={input.key} value={input.key}>
                         {input.label}
@@ -213,20 +225,20 @@ function StatLineWhatIf({ scenarios, position, inputs, actual, settled }: Props)
       </div>
       {unsupported.length > 0 && (
         <p className="scenario-note">
-          Not available for {unsupported.map((scenario) => scenario.league.name).join(', ')}.
-          The table above still covers it.
+          Not available for {unsupported.map((scenario) => scenario.league.name).join(', ')}. The
+          table above still covers it.
         </p>
       )}
       {approximate.length > 0 && (
         <p className="scenario-note">
-          Approximate for {approximate.map((scenario) => scenario.league.name).join(', ')}: it
-          has scoring rules this calculator doesn’t know, so his points here may be off.
+          Approximate for {approximate.map((scenario) => scenario.league.name).join(', ')}: it has
+          scoring rules this calculator doesn’t know, so his points here may be off.
         </p>
       )}
       <p className="scenario-note">
         “Needed” solves for one stat with the rest of the line as typed. “Kept” points come from
-        rules a basic line can’t express, such as first downs and long-play bonuses; they stay
-        at what he really has this week.
+        rules a basic line can’t express, such as first downs and long-play bonuses; they stay at
+        what he really has this week.
       </p>
     </section>
   )

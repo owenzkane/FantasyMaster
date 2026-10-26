@@ -42,27 +42,29 @@ function App() {
       <h1>FantasyMaster</h1>
       {usingMock && (
         <p className="mock-note">
-          Mock data is on. Use the Sleeper username <code>demo_user</code> and the ESPN league
-          ID <code>1000000001</code>.
+          Mock data is on. Use the Sleeper username <code>demo_user</code> and the ESPN league ID{' '}
+          <code>1000000001</code>.
         </p>
       )}
 
-      <LinkForm
-        disabled={busy}
-        onSleeperUsername={setSleeperUsername}
-        findEspnLeague={findEspnLeague}
-        onAddEspnLeague={addEspnLeague}
-      />
-
-      {hasLinks(links) && (
-        <LinkedAccounts
-          links={links}
-          leagues={state.status === 'loaded' ? state.leagues : []}
+      <div className="link-area">
+        <LinkForm
           disabled={busy}
-          onRemoveSleeper={removeSleeper}
-          onRemoveEspnLeague={removeEspnLeague}
+          onSleeperUsername={setSleeperUsername}
+          findEspnLeague={findEspnLeague}
+          onAddEspnLeague={addEspnLeague}
         />
-      )}
+
+        {hasLinks(links) && (
+          <LinkedAccounts
+            links={links}
+            leagues={state.status === 'loaded' ? state.leagues : []}
+            disabled={busy}
+            onRemoveSleeper={removeSleeper}
+            onRemoveEspnLeague={removeEspnLeague}
+          />
+        )}
+      </div>
 
       {state.status === 'loading' && <p className="status">Loading leagues…</p>}
 
@@ -102,6 +104,7 @@ function App() {
               <div className="view-switch">
                 <button
                   type="button"
+                  className="btn"
                   aria-pressed={view === 'leagues'}
                   onClick={() => setView('leagues')}
                 >
@@ -109,6 +112,7 @@ function App() {
                 </button>
                 <button
                   type="button"
+                  className="btn"
                   aria-pressed={view === 'players'}
                   onClick={() => setView('players')}
                 >
@@ -116,6 +120,7 @@ function App() {
                 </button>
                 <button
                   type="button"
+                  className="btn"
                   aria-pressed={view === 'scenarios'}
                   onClick={() => setView('scenarios')}
                 >
@@ -123,6 +128,7 @@ function App() {
                 </button>
                 <button
                   type="button"
+                  className="btn"
                   aria-pressed={view === 'stats'}
                   onClick={() => setView('stats')}
                 >

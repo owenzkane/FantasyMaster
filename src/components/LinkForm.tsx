@@ -72,17 +72,22 @@ function LinkForm({ disabled, onSleeperUsername, findEspnLeague, onAddEspnLeague
       >
         <label htmlFor="espn-team">Your team in {espnChoice.league.name}</label>
         <div className="link-form-row">
-          <select id="espn-team" value={teamId} onChange={(event) => setTeamId(event.target.value)}>
+          <select
+            id="espn-team"
+            className="select"
+            value={teamId}
+            onChange={(event) => setTeamId(event.target.value)}
+          >
             {espnChoice.teams.map((team) => (
               <option key={team.id} value={team.id}>
                 {team.ownerName ? `${team.name} (${team.ownerName})` : team.name}
               </option>
             ))}
           </select>
-          <button type="submit" disabled={disabled || !teamId}>
+          <button type="submit" className="btn btn-primary" disabled={disabled || !teamId}>
             Add league
           </button>
-          <button type="button" className="secondary" onClick={() => setEspnChoice(null)}>
+          <button type="button" className="btn" onClick={() => setEspnChoice(null)}>
             Cancel
           </button>
         </div>
@@ -111,7 +116,7 @@ function LinkForm({ disabled, onSleeperUsername, findEspnLeague, onAddEspnLeague
       <label htmlFor="link-input">{INPUT_LABELS[platform]}</label>
       <div className="link-form-row">
         <select
-          className="platform-select"
+          className="select platform-select"
           aria-label="Platform"
           value={platform}
           onChange={(event) => {
@@ -126,6 +131,7 @@ function LinkForm({ disabled, onSleeperUsername, findEspnLeague, onAddEspnLeague
         </select>
         <input
           id="link-input"
+          className="input"
           value={text}
           onChange={(event) => setText(event.target.value)}
           disabled={platform === 'yahoo'}
@@ -133,13 +139,15 @@ function LinkForm({ disabled, onSleeperUsername, findEspnLeague, onAddEspnLeague
           autoCapitalize="none"
           spellCheck={false}
         />
-        <button type="submit" disabled={disabled || searching || platform === 'yahoo'}>
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={disabled || searching || platform === 'yahoo'}
+        >
           {platform === 'sleeper' ? 'Show leagues' : 'Find league'}
         </button>
       </div>
-      {platform === 'yahoo' && (
-        <p className="status">Yahoo leagues aren’t supported yet.</p>
-      )}
+      {platform === 'yahoo' && <p className="status">Yahoo leagues aren’t supported yet.</p>}
       {message && (
         <p className="status" role="alert">
           {message}

@@ -12,7 +12,7 @@ interface Props {
 function PlayersTable({ players, directory, injuries }: Props) {
   return (
     <div className="players-table-wrap">
-      <table className="players-table">
+      <table className="table players-table">
         <thead>
           <tr>
             <th scope="col">Player</th>
@@ -32,7 +32,11 @@ function PlayersTable({ players, directory, injuries }: Props) {
                 <th scope="row">
                   {info ? info.name : `Unknown player (${player.playerId})`}
                   {injury && (
-                    <span className={`injury injury-${injury.severity}`}>{injury.label}</span>
+                    <span
+                      className={`badge ${injury.severity === 'out' ? 'badge-danger' : 'badge-warning'} injury injury-${injury.severity}`}
+                    >
+                      {injury.label}
+                    </span>
                   )}
                   {info && (
                     <span className="player-meta">

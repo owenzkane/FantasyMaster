@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import type { League } from '../platforms/types.ts'
 import { statInputs } from '../scenarios/statLine.ts'
 import type { LeagueScenario, ScenarioRole } from '../scenarios/winScenarios.ts'
+import { startingLine } from '../scenarios/winningLine.ts'
+import type { StartingLine } from '../scenarios/winningLine.ts'
 import StatLineWhatIf from './StatLineWhatIf.tsx'
 
 // A receiver with 5 catches for 50 yards scores 10 in every league here (1 per catch, 0.1 per yard)
@@ -24,17 +26,28 @@ const scenario = (name: string, role: ScenarioRole, threshold: number | null): L
   standing: 'winning',
 })
 
-function summary(scenarios: LeagueScenario[], settled = false) {
-  const html = renderToStaticMarkup(
+const REAL_LINE = { rec: 5, rec_yd: 50 }
+
+function render(scenarios: LeagueScenario[], settled = false, start?: StartingLine) {
+  return renderToStaticMarkup(
     <StatLineWhatIf
       scenarios={scenarios}
       position="WR"
       inputs={statInputs('WR')!}
-      actual={{ rec: 5, rec_yd: 50 }}
+      actual={REAL_LINE}
       settled={settled}
+      start={start ?? { line: REAL_LINE, kind: 'real' }}
     />,
   )
-  const text = (part: string) => part.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
+function summary(scenarios: LeagueScenario[], settled = false) {
+  const html = render(scenarios, settled)
+  const text = (part: string) =>
+    part
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
   return {
     headline: text(html.match(/<p class="what-if-summary">.*?<\/p>/s)![0]),
     sides: [...html.matchAll(/<li>.*?<\/li>/gs)].map((item) => text(item[0])),
@@ -83,7 +96,9 @@ describe('StatLineWhatIf summary', () => {
 
   it('uses the past tense once his week is over', () => {
     const settled = summary(mixed, true)
-    expect(settled.headline).toBe('With this line you would have won 2 of the 4 matchups he counts in.')
+    expect(settled.headline).toBe(
+      'With this line you would have won 2 of the 4 matchups he counts in.',
+    )
     expect(settled.sides[0]).toBe('You start him in 2 leagues: won in Alpha; lost in Bravo')
   })
 
@@ -92,5 +107,37 @@ describe('StatLineWhatIf summary', () => {
     expect(table).toContain('Alpha PPR · you start him')
     expect(table).toContain('Charlie PPR · you face him')
     expect(table).toContain('Echo PPR · on your bench')
+  })
+})
+
+describe('StatLineWhatIf starting line', () => {
+  const inputs = statInputs('WR')!
+  const boxes = (html: string) =>
+    Object.fromEntries(
+      [...html.matchAll(/<label>([^<]*)<input[^>]*value="([^"]*)"/g)].map((m) => [m[1], m[2]]),
+    )
+
+  it('fills the boxes with a line that wins every matchup, and says so', () => {
+    const scenarios = [scenario('Alpha', 'myStarter', 12), scenario('Bravo', 'opponentStarter', 30)]
+    const start = startingLine(scenarios, REAL_LINE, 'WR', inputs)
+    const html = render(scenarios, false, start)
+    expect(start.kind).toBe('winning')
+    expect(boxes(html)).toMatchObject({
+      Catches: String(start.line.rec),
+      'Rec yards': String(start.line.rec_yd),
+    })
+    expect(html).toContain('Filled in with a line that wins every matchup he counts in')
+    expect(html).toContain('With this line you win 2 of the 2 matchups he counts in.')
+  })
+
+  it('fills every box with 0 when no line wins them all, and says so', () => {
+    const scenarios = [scenario('Alpha', 'myStarter', 30), scenario('Bravo', 'opponentStarter', 5)]
+    const html = render(scenarios, false, startingLine(scenarios, REAL_LINE, 'WR', inputs))
+    expect(Object.values(boxes(html)).every((value) => value === '0')).toBe(true)
+    expect(html).toContain('No single line wins every matchup he counts in, so it starts at zero.')
+  })
+
+  it('offers his real line when he has one', () => {
+    expect(render([scenario('Alpha', 'myStarter', 8)])).toContain('Use his real line')
   })
 })

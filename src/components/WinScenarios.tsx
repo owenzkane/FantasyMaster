@@ -5,6 +5,7 @@ import { gameState, isSettled } from '../scenarios/gameStatus.ts'
 import type { GameState, WeekTiming } from '../scenarios/gameStatus.ts'
 import { searchPlayers } from '../scenarios/searchPlayers.ts'
 import { statInputs } from '../scenarios/statLine.ts'
+import { startingLine } from '../scenarios/winningLine.ts'
 import { scenarioPlayers, scoringFormat, winScenarios } from '../scenarios/winScenarios.ts'
 import type { LeagueScenario } from '../scenarios/winScenarios.ts'
 import StatLineWhatIf from './StatLineWhatIf.tsx'
@@ -18,13 +19,26 @@ interface Props {
   games: LiveGames
 }
 
-// What each state means for the person reading: can he still score or not
-const GAME_LABELS: Record<GameState, { text: string; detail: string; tone: string }> = {
-  upcoming: { text: 'Yet to play', detail: 'He can still score.', tone: 'good' },
-  live: { text: 'Playing now', detail: 'His score can still change.', tone: 'warn' },
-  final: { text: 'Has played', detail: 'His score is final.', tone: 'neutral' },
-  bye: { text: 'On a bye', detail: 'He has no game this week.', tone: 'neutral' },
-  didNotPlay: { text: 'Did not play', detail: 'He has no stats for this week.', tone: 'neutral' },
+// What each state means for the person reading: can he still score or not. The badge colour
+// repeats the text, never replaces it.
+const GAME_LABELS: Record<GameState, { text: string; detail: string; badge: string }> = {
+  upcoming: {
+    text: 'Yet to play',
+    detail: 'He can still score.',
+    badge: 'badge-success',
+  },
+  live: {
+    text: 'Playing now',
+    detail: 'His score can still change.',
+    badge: 'badge-warning',
+  },
+  final: { text: 'Has played', detail: 'His score is final.', badge: '' },
+  bye: { text: 'On a bye', detail: 'He has no game this week.', badge: '' },
+  didNotPlay: {
+    text: 'Did not play',
+    detail: 'He has no stats for this week.',
+    badge: '',
+  },
 }
 
 const ROLE_LABELS = {
@@ -87,6 +101,7 @@ function WinScenarios({ leagues, directory, stats, week, timing, games }: Props)
         <label htmlFor="player-search">Search for a player</label>
         <input
           id="player-search"
+          className="input"
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -121,7 +136,7 @@ function WinScenarios({ leagues, directory, stats, week, timing, games }: Props)
       </h3>
       {state && (
         <p className="game-state">
-          <span className={`game-state-tag game-state-${GAME_LABELS[state].tone}`}>
+          <span className={`badge ${GAME_LABELS[state].badge} game-state-tag`}>
             {GAME_LABELS[state].text}
           </span>{' '}
           {GAME_LABELS[state].detail}
@@ -129,7 +144,7 @@ function WinScenarios({ leagues, directory, stats, week, timing, games }: Props)
       )}
 
       <div className="players-table-wrap">
-        <table className="players-table">
+        <table className="table players-table">
           <thead>
             <tr>
               <th scope="col">League</th>
@@ -158,8 +173,8 @@ function WinScenarios({ leagues, directory, stats, week, timing, games }: Props)
         </table>
       </div>
       <p className="scenario-note">
-        Points are in each league’s own scoring, with every other player held at his current
-        score. Landing exactly on a number is a tie.
+        Points are in each league’s own scoring, with every other player held at his current score.
+        Landing exactly on a number is a tie.
       </p>
 
       {inputs ? (
@@ -172,6 +187,7 @@ function WinScenarios({ leagues, directory, stats, week, timing, games }: Props)
           inputs={inputs}
           actual={stats[playerId] ?? {}}
           settled={settled}
+          start={startingLine(scenarios, stats[playerId] ?? {}, position, inputs)}
         />
       ) : (
         <p className="scenario-note">

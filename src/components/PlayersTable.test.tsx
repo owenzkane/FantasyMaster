@@ -11,7 +11,10 @@ const entry = (leagueName: string, isStarter: boolean) => ({
   isStarter,
 })
 const players: MyPlayer[] = [
-  { playerId: '1', leagues: [entry('League A', true), entry('League B', false)] },
+  {
+    playerId: '1',
+    leagues: [entry('League A', true), entry('League B', false)],
+  },
   { playerId: '2', leagues: [entry('League A', true)] },
   { playerId: '3', leagues: [entry('League A', false)] },
 ]
@@ -33,12 +36,16 @@ const text = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '
 describe('PlayersTable', () => {
   it('tags an injured-reserve player "IR" in the red style', () => {
     const [, hurt] = rows({ '2': 'IR' })
-    expect(hurt).toContain('<span class="injury injury-out">IR</span>')
+    expect(hurt).toMatch(/<span class="badge badge-danger injury injury-out">IR<\/span>/)
   })
 
   it('tags Out in red and Doubtful or Questionable in amber', () => {
-    expect(rows({ '2': 'Out' })[1]).toContain('<span class="injury injury-out">Out</span>')
-    expect(rows({ '3': 'Doubtful' })[2]).toContain('<span class="injury injury-doubt">Doubtful</span>')
+    expect(rows({ '2': 'Out' })[1]).toContain(
+      '<span class="badge badge-danger injury injury-out">Out</span>',
+    )
+    expect(rows({ '3': 'Doubtful' })[2]).toContain(
+      '<span class="badge badge-warning injury injury-doubt">Doubtful</span>',
+    )
     expect(rows({ '3': 'Questionable' })[2]).toContain('injury-doubt">Questionable<')
   })
 

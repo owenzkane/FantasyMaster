@@ -49,6 +49,13 @@ function resultOf(matchup: Matchup, timing: WeekTiming): Result | null {
   return difference > 0 ? { text: 'Winning', tone: 'good' } : { text: 'Losing', tone: 'bad' }
 }
 
+// Results are states, so they use the status colours; a tie is plain violet
+const BADGES = {
+  good: 'badge badge-success',
+  bad: 'badge badge-danger',
+  neutral: 'badge',
+}
+
 function Projected({ points }: { points: number | null }) {
   if (points === null) return null
   return <span className="projected">proj {points.toFixed(2)}</span>
@@ -59,7 +66,7 @@ function LeagueCard({ summary, timing, directory }: Props) {
 
   if (matchup === null) {
     return (
-      <li className="league-card">
+      <li className="card is-interactive league-card">
         <div className="league-card-row">
           <div>
             <h3>{league.name}</h3>
@@ -77,7 +84,7 @@ function LeagueCard({ summary, timing, directory }: Props) {
   const result = resultOf(matchup, timing)
 
   return (
-    <li className="league-card">
+    <li className="card is-interactive league-card">
       {/* <details> is the browser's built-in expand/collapse; <summary> is the part always shown */}
       <details>
         <summary className="league-card-row">
@@ -87,11 +94,14 @@ function LeagueCard({ summary, timing, directory }: Props) {
               {PLATFORM_NAMES[league.platform]} · {league.teamCount} teams
             </p>
             <p className="league-meta">
-              {matchup.myTeamName ?? 'You'} {opponent ? `vs. ${opponentLabel(opponent)}` : '(no opponent)'}
+              {matchup.myTeamName ?? 'You'}{' '}
+              {opponent ? `vs. ${opponentLabel(opponent)}` : '(no opponent)'}
             </p>
           </div>
           <div className="league-card-result">
-            {result && <p className={`result result-${result.tone}`}>{result.text}</p>}
+            {result && (
+              <p className={`${BADGES[result.tone]} result result-${result.tone}`}>{result.text}</p>
+            )}
             <dl className="scores">
               <div>
                 <dt>You</dt>

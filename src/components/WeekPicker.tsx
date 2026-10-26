@@ -14,6 +14,7 @@ function WeekPicker({ week, currentWeek, lastWeek, disabled, onChange }: Props) 
     <label className="week-picker">
       Week
       <select
+        className="select"
         value={week}
         disabled={disabled}
         // A select's value is always a string, so convert it back to a number
