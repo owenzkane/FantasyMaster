@@ -8,7 +8,7 @@ import WinScenarios from './components/WinScenarios.tsx'
 import WeekPicker from './components/WeekPicker.tsx'
 import { hasLinks } from './hooks/links.ts'
 import { useLeagues } from './hooks/useLeagues.ts'
-import { usingMock } from './platforms/index.ts'
+import { espnAccount, usingMock } from './platforms/index.ts'
 import { combinePlayers } from './players/combinePlayers.ts'
 import type { WeekTiming } from './scenarios/gameStatus.ts'
 import './App.css'
@@ -43,7 +43,8 @@ function App() {
       {usingMock && (
         <p className="mock-note">
           Mock data is on. Use the Sleeper username <code>demo_user</code> and the ESPN league ID{' '}
-          <code>1000000001</code>.
+          <code>1000000001</code>. ESPN league <code>2000000002</code> is private: connect with any
+          two values to open it.
         </p>
       )}
 
@@ -53,6 +54,7 @@ function App() {
           onSleeperUsername={setSleeperUsername}
           findEspnLeague={findEspnLeague}
           onAddEspnLeague={addEspnLeague}
+          espnAccount={espnAccount}
         />
 
         {hasLinks(links) && (

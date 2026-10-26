@@ -5,10 +5,9 @@ import type { EspnProblem } from '../types.ts'
 import type { EspnLeagueResponse } from './espnTypes.ts'
 
 const ESPN_URL = 'https://lm-api-reads.fantasy.espn.com'
-// A path on our own dev server, which forwards to ESPN with my login cookies added.
-// See vite.config.ts. It only exists while `npm run dev` is running.
-const PROXY_URL = '/espn-private'
-const proxyAvailable = import.meta.env.DEV
+// This site's own server function (api/espn.js), which forwards a request to ESPN with the
+// visitor's ESPN login added. It's served by Vercel when deployed and by the dev server locally.
+const PROXY_URL = '/api/espn'
 
 // Leagues ESPN has refused to show without a login, so later requests skip the direct attempt
 const privateLeagues = new Set<string>()
@@ -18,21 +17,23 @@ function leaguePath(leagueId: string, season: string, query: string) {
 }
 
 // Public leagues are fetched straight from ESPN. If ESPN answers 401 (private), the same
-// request is retried through the proxy.
+// request is retried through our server.
 async function espnFetch(leagueId: string, path: string, init?: RequestInit) {
   if (!privateLeagues.has(leagueId)) {
     const direct = await fetch(ESPN_URL + path, init)
     if (direct.status !== 401) return direct
     privateLeagues.add(leagueId)
   }
-  if (!proxyAvailable) return new Response(null, { status: 401 })
-  return fetch(PROXY_URL + path, init)
+  return fetch(`${PROXY_URL}?target=${encodeURIComponent(path)}`, init)
 }
 
-// Why a private league still couldn't be read after going through the proxy
-function privateProblem(response: Response): EspnProblem {
-  if (!proxyAvailable) return 'privateNoProxy'
-  return response.headers.get('x-espn-cookies') === 'missing' ? 'privateNoCookies' : 'privateRejected'
+// Why a private league still couldn't be read after going through our server
+function privateProblem(response: Response): EspnProblem | null {
+  const login = response.headers.get('x-espn-cookies')
+  // Only our server adds this header; without it, nothing answered at /api/espn
+  if (login === null) return 'privateNoProxy'
+  if (response.status !== 401 && response.status !== 403) return null
+  return login === 'missing' ? 'privateNoCookies' : 'privateRejected'
 }
 
 // Basic facts about a league: its name, scoring rules, teams and members.
@@ -41,8 +42,11 @@ export async function fetchEspnLeague(
   season: string,
 ): Promise<EspnLeagueResponse | EspnProblem> {
   const response = await espnFetch(leagueId, leaguePath(leagueId, season, 'view=mSettings&view=mTeam'))
+  if (privateLeagues.has(leagueId)) {
+    const problem = privateProblem(response)
+    if (problem) return problem
+  }
   if (response.status === 400 || response.status === 404) return 'notFound'
-  if (response.status === 401 || response.status === 403) return privateProblem(response)
   if (!response.ok) {
     throw new Error(`ESPN request failed (${response.status}) for league ${leagueId}`)
   }

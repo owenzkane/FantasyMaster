@@ -4,6 +4,9 @@
     "target": "es2023",
     "lib": ["ES2023"],
     "types": ["node"],
+    // The server code in server/ and api/ is plain JavaScript, type-checked from JSDoc comments
+    "allowJs": true,
+    "checkJs": true,
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -19,5 +22,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "vitest.setup.ts"]
+  "include": ["vite.config.ts", "vitest.setup.ts", "server", "api"]
 }

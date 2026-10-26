@@ -6,10 +6,15 @@ export function describeEspnProblem(problem: EspnProblem) {
     case 'notFound':
       return 'No ESPN league with that ID.'
     case 'privateNoProxy':
-      return 'This league is private. Private leagues only work when the app is run with `npm run dev`.'
+      return 'This league is private, and this copy of the app can’t open private leagues.'
     case 'privateNoCookies':
-      return 'This league is private and no ESPN login cookies are set up. Add ESPN_S2 and ESPN_SWID to .env.local (see NOTES.md), then restart `npm run dev`.'
+      return 'This league is private. Connect your ESPN account to add it.'
     case 'privateRejected':
-      return 'This league is private and ESPN rejected the saved login cookies. They may have expired, or that account isn’t in the league. Update ESPN_S2 and ESPN_SWID in .env.local, then restart `npm run dev`.'
+      return 'This league is private and ESPN didn’t accept your saved login. It may have expired, or your account isn’t in this league. Connect again with fresh values.'
   }
+}
+
+// True for the problems that connecting (or reconnecting) an ESPN account can fix
+export function needsEspnLogin(problem: EspnProblem) {
+  return problem === 'privateNoCookies' || problem === 'privateRejected'
 }

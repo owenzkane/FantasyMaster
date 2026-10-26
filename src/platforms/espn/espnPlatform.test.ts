@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { DEMO_ESPN_LEAGUE_ID, loadDemo, loadEveryTeam, sumStarters } from '../../testing/demo.ts'
-import { mockEspn } from '../mock/mockPlatform.ts'
+import { mockEspn, mockEspnAccount } from '../mock/mockPlatform.ts'
 import { toEspnLeagueWeek } from './espnPlatform.ts'
 import type { EspnLeagueResponse } from './espnTypes.ts'
 
@@ -30,18 +30,39 @@ describe('finding an ESPN league', () => {
       scoringGaps: 0,
     })
     expect(found.choice.teams).toHaveLength(8)
-    expect(found.choice.teams[0]).toEqual({ id: '1', name: 'ESPN Team 1', ownerName: 'espn_manager_5' })
+    expect(found.choice.teams[0]).toEqual({
+      id: '1',
+      name: 'ESPN Team 1',
+      ownerName: 'espn_manager_5',
+    })
   })
 
   it('reports a league that doesn’t exist', async () => {
     expect(await mockEspn.findLeague('123', '2026')).toEqual({ ok: false, problem: 'notFound' })
   })
 
-  it('reports a private league with no cookies set up', async () => {
+  it('refuses the mock private league until the mock ESPN account is connected', async () => {
     expect(await mockEspn.findLeague('2000000002', '2026')).toEqual({
       ok: false,
       problem: 'privateNoCookies',
     })
+
+    expect(await mockEspnAccount.connect('', '')).toEqual({
+      ok: false,
+      message: 'Fill in both values.',
+    })
+    expect(await mockEspnAccount.connect('anything', 'anything')).toEqual({ ok: true })
+    expect(await mockEspnAccount.status()).toBe('connected')
+
+    const found = await mockEspn.findLeague('2000000002', '2026')
+    if (!found.ok) throw new Error('expected the private league once connected')
+    expect(found.choice.league).toMatchObject({ id: '2000000002', name: 'Demo Private League' })
+    const week = await mockEspn.getLeagueWeek({ ...found.choice.league, myTeamId: '1' }, 4)
+    expect(week.matchup?.myPoints).toBe(137.94)
+
+    await mockEspnAccount.disconnect()
+    expect(await mockEspnAccount.status()).toBe('disconnected')
+    expect((await mockEspn.findLeague('2000000002', '2026')).ok).toBe(false)
   })
 })
 

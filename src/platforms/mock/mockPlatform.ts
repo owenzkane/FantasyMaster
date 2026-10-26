@@ -13,7 +13,13 @@ import type {
   SleeperState,
   SleeperUser,
 } from '../sleeper/sleeperTypes.ts'
-import type { EspnSource, InjuryStatuses, SleeperSource, WeekStats } from '../types.ts'
+import type {
+  EspnAccount,
+  EspnSource,
+  InjuryStatuses,
+  SleeperSource,
+  WeekStats,
+} from '../types.ts'
 
 // Week 4 is the finished week in the fixtures; week 5 was saved before any games
 const MOCK_WEEK = 4
@@ -74,19 +80,53 @@ export const mockSleeper: SleeperSource = {
   },
 }
 
-// Pretends to be a private league with no cookies set up, to show that message offline
+// A pretend private league: refused until the mock ESPN account is connected, then served from
+// the demo ESPN league's saved data under its own ID and name. Lets the whole connect flow be
+// tried offline.
 const MOCK_PRIVATE_LEAGUE_ID = '2000000002'
+const MOCK_PRIVATE_LEAGUE_NAME = 'Demo Private League'
+const DEMO_ESPN_LEAGUE_ID = '1000000001'
+let mockConnected = false
+
+// A saved ESPN response for a league, with the private league borrowing the demo league's data
+function espnFixture(leagueId: string, suffix = ''): EspnLeagueResponse | undefined {
+  if (leagueId !== MOCK_PRIVATE_LEAGUE_ID) return fixture(`espn-${leagueId}${suffix}`)
+  const response = fixture<EspnLeagueResponse>(`espn-${DEMO_ESPN_LEAGUE_ID}${suffix}`)
+  if (!response) return undefined
+  return {
+    ...response,
+    id: Number(MOCK_PRIVATE_LEAGUE_ID),
+    settings: response.settings && { ...response.settings, name: MOCK_PRIVATE_LEAGUE_NAME },
+  }
+}
+
+export const mockEspnAccount: EspnAccount = {
+  async status() {
+    return mockConnected ? 'connected' : 'disconnected'
+  },
+  // Any two non-empty values connect: there's no real ESPN to check them against
+  async connect(espnS2, swid) {
+    if (!espnS2.trim() || !swid.trim()) return { ok: false, message: 'Fill in both values.' }
+    mockConnected = true
+    return { ok: true }
+  },
+  async disconnect() {
+    mockConnected = false
+  },
+}
 
 export const mockEspn: EspnSource = {
   async findLeague(leagueId) {
-    if (leagueId === MOCK_PRIVATE_LEAGUE_ID) return { ok: false, problem: 'privateNoCookies' }
-    const response = fixture<EspnLeagueResponse>(`espn-${leagueId}`)
+    if (leagueId === MOCK_PRIVATE_LEAGUE_ID && !mockConnected) {
+      return { ok: false, problem: 'privateNoCookies' }
+    }
+    const response = espnFixture(leagueId)
     const choice = response ? toEspnLeagueChoice(response) : null
     return choice ? { ok: true, choice } : { ok: false, problem: 'notFound' }
   },
 
   async getLeagueWeek(league, week) {
-    const response = fixture<EspnLeagueResponse>(`espn-${league.id}-week${week}`)
+    const response = espnFixture(league.id, `-week${week}`)
     if (!response) {
       return { matchup: null, myPlayers: [], opponentPlayers: [], season: null, members: [] }
     }

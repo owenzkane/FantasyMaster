@@ -169,8 +169,9 @@ export interface EspnLeagueChoice {
   teams: TeamChoice[]
 }
 
-// Why an ESPN league couldn't be read. The three "private" ones are: the app is running
-// without the dev server's proxy; the proxy has no login cookies; ESPN refused the cookies.
+// Why an ESPN league couldn't be read. The three "private" ones are: this copy of the app has
+// no server to fetch private leagues through; the visitor hasn't connected an ESPN account;
+// ESPN refused the connected account's login.
 export type EspnProblem = 'notFound' | 'privateNoProxy' | 'privateNoCookies' | 'privateRejected'
 
 export type EspnFindResult =
@@ -180,4 +181,17 @@ export type EspnFindResult =
 // ESPN has no lookup by username: leagues are linked one at a time by ID, then a team is picked.
 export interface EspnSource extends FantasyPlatform {
   findLeague(leagueId: string, season: string): Promise<EspnFindResult>
+}
+
+// Whether this browser has an ESPN login stored for private leagues. 'unavailable' means this
+// copy of the app has no server (for example a plain static host), so private leagues can't work.
+export type EspnConnection = 'connected' | 'disconnected' | 'unavailable'
+
+export type EspnConnectResult = { ok: true } | { ok: false; message: string }
+
+// Connecting the visitor's ESPN account, so private leagues can be read
+export interface EspnAccount {
+  status(): Promise<EspnConnection>
+  connect(espnS2: string, swid: string): Promise<EspnConnectResult>
+  disconnect(): Promise<void>
 }

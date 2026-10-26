@@ -40,7 +40,7 @@ finish, and linked accounts remembered in your browser between visits.
 |----------|--------------|-------|
 | Sleeper | Username | All of the user's leagues for the season load at once |
 | ESPN, public leagues | League ID (or the league's web address), then pick your team | Works in a browser with no login |
-| ESPN, private leagues | Same, plus your ESPN login cookies | Local development only; see below |
+| ESPN, private leagues | Same, after connecting your ESPN account in the app | Needs the app's server functions (on Vercel, or `npm run dev`) |
 | Yahoo | Not supported | Listed in the form, but not built |
 
 ## Running it
@@ -70,13 +70,27 @@ start in one league and face in another.
 
 ### Private ESPN leagues
 
-ESPN only shows a private league to someone signed in, so the app needs two cookies from your
-espn.com session. Copy `.env.example` to `.env.local`, fill in `ESPN_S2` and `ESPN_SWID` (the
-file explains where to find them in your browser), and restart `npm run dev`.
+ESPN only shows a private league to its members, so the app needs two values from your espn.com
+login (the `espn_s2` and `SWID` cookies). Choose ESPN in the linking form and click "Private
+league? Connect your ESPN account"; the page walks you through finding the values in Chrome,
+Edge, Firefox or Safari. It opens by itself if you try to add a private league first.
 
-This works only while the dev server is running: the dev server adds the cookies to requests for
-private leagues, which a web page isn't allowed to do itself. `.env.local` is git-ignored; never
-commit those values, since together they are a login to your ESPN account.
+How it works: a web page isn't allowed to attach cookies to a request to another site, so two
+small server functions in `api/` do it. `/api/espn-login` stores the values in your browser as a
+cookie on this site that the page's JavaScript can't read, and `/api/espn` forwards private-league
+requests to ESPN with them added. Nothing is saved on the server; the values stay in your browser
+until you disconnect, and stop working when you sign out of ESPN. The proxy only ever fetches ESPN
+fantasy league addresses.
+
+Locally, `npm run dev` runs the same functions. In mock mode, ESPN league `2000000002` is a
+pretend private league that opens after connecting with any two values.
+
+### Deploying
+
+The app is set up for [Vercel](https://vercel.com): import the GitHub repository, and Vercel builds
+the Vite app and turns each file in `api/` into a server function. There are no environment
+variables to set. On a host without server functions (any plain static host), everything works
+except private ESPN leagues, and the app says so.
 
 ### Commands
 
@@ -92,8 +106,10 @@ commit those values, since together they are a login to your ESPN account.
 
 ## How it works
 
-The app is a React + TypeScript single-page app built with Vite. There is no backend: the browser
-calls Sleeper's and ESPN's APIs directly.
+The app is a React + TypeScript single-page app built with Vite. The browser calls Sleeper's and
+ESPN's APIs directly; the only server code is the two small functions in `api/` that private ESPN
+leagues need. They're plain JavaScript (type-checked through JSDoc comments) so Vercel can run
+them as they are.
 
 **One interface, several platforms.** Each platform implements a small interface in
 `src/platforms/types.ts` whose core is `getLeagueWeek(league, week)`. The Sleeper and ESPN code
@@ -124,8 +140,9 @@ ESPN's figure to within a cent when compared on the same players.
 `fixtures/`, reusing the real conversion code, so mock mode exercises everything except the
 network.
 
-**Tests.** 205 tests with Vitest, mostly on the pure logic: the platform conversions, player
-matching, scoring, win thresholds, the stat-line search and the stats. Many check real numbers
+**Tests.** 245 tests with Vitest, mostly on the pure logic: the platform conversions, player
+matching, scoring, win thresholds, the stat-line search, the stats, and the server functions for
+private leagues. Many check real numbers
 from the fixtures end to end. Tests can't reach the network; `vitest.setup.ts` makes any attempt
 fail.
 
@@ -145,19 +162,21 @@ src/
   stats/            Cross-league records and comparisons
   styles/           Design tokens
   testing/          Helpers that load the mock data for tests
+api/                Server functions for private ESPN leagues (one per address)
+server/             Their logic, and the plugin that runs them under `npm run dev`
 scripts/            The player-list refresh script
 public/             The saved player list
 ```
 
 ## Data sources
 
-All of these are called directly from the browser.
+All of these are called directly from the browser, except private ESPN leagues, which go through the app's own server function.
 
 | Source | Used for | Documented? |
 |--------|----------|-------------|
 | Sleeper API (`api.sleeper.app/v1`) | Users, leagues, rosters, matchups, NFL state | Yes |
 | Sleeper stats and projections | Real and projected stat lines, injury status | No |
-| ESPN fantasy API (`lm-api-reads.fantasy.espn.com`) | ESPN leagues, teams, matchups, projections | No |
+| ESPN fantasy API (`lm-api-reads.fantasy.espn.com`) | ESPN leagues, teams, matchups, projections (private leagues through `/api/espn`) | No |
 | ESPN NFL scoreboard (`site.api.espn.com`) | Which games are live or finished | No |
 
 The undocumented ones can change without notice. Where one fails, the app carries on without what
@@ -168,7 +187,9 @@ it provides (no projections, no live game states) rather than failing the whole 
 - Win scenarios hold every other player at his current score; they don't yet use projections for
   players still to play.
 - ESPN playoff weeks (15 onward) show no matchup.
-- Private ESPN leagues need the local dev server.
+- Private ESPN leagues need the server functions, so they don't work on a plain static host. The
+  Vercel setup hasn't been tried on a live deployment yet.
+- No rate limiting on the server functions.
 - Yahoo isn't supported.
 - Player names come from a saved list, so very new players show as "Unknown player" until
   `npm run update-players` is run.
